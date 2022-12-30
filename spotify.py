@@ -16,10 +16,6 @@ from spotipy.cache_handler import MemoryCacheHandler
 
 class SpotifyCustomer:
 
-    # SPOTIFY_CLIENT_ID = 'cde498d64fc64a6fab0906215a6605c3'
-    # SPOTIFY_CLIENT_SECRET_KEY = '67cb837c10ed4819b026d011e95b20c6'
-    # USER_ID = 'aj2by3b1b1oc45u1jj5cz2wxd'
-
     SPOTIFY_CLIENT_ID = None
     SPOTIFY_CLIENT_SECRET_KEY = None
     USER_ID = None
