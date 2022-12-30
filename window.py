@@ -48,6 +48,9 @@ class ApplicationInterface:
         self.file_mp3 = None
         self.master = master
         self.search_songs = []
+        self.playlist_name = None
+        self.uri = None
+        self.selected_songs = set()
         self.spotify_client = SpotifyCustomer()
         master.title('Spotify Download')
         master.resizable(width=True, height=True)
@@ -147,21 +150,23 @@ class ApplicationInterface:
         self.frame.grid(row=0, column=0, columnspan=5, padx=5, pady=10)
 
         self.btn_frame = Frame(self.page_tree)
-        self.btn_frame.grid(row=0, column=6, padx=5)
-
-        self.image = Image.open("transfer.png")
-        btn_photo = ImageTk.PhotoImage(self.image)
-        Button(self.btn_frame, image=btn_photo,
-               command=None).pack(side=tkinter.RIGHT)
+        self.btn_frame.grid(row=4, column=0, padx=5)
 
         self.frame_playlist = Frame(self.page_tree)
         self.frame_playlist.grid(
-            row=0, column=8, columnspan=5, padx=150, pady=10)
+            row=0, column=8, columnspan=5, padx=50, pady=10)
 
         self.playlist_panel()
 
-        # Button(self.btn_frame, text="Transferer", width=15, bg='green',
-        #        command=None).pack(side=tkinter.BOTTOM, padx=280)
+        Button(self.btn_frame, text="Transferer", width=15, bg='green',
+               command=self.add_track_in_playlist).grid(row=1, column=0)
+        Button(self.btn_frame, text="Copier le lien de la playlist", width=25, bg='red',
+               command=self.copy_paste_text).grid(row=1, column=5, padx=5)
+
+    def copy_paste_text(self, text: str):
+        self.master.clipboard_clear()
+        self.master.clipboard_append(text)
+        print('done')
 
     def create_checklist(self, frame: Frame, name: str, list_title: str):
         self.cl = tix.CheckList(frame, browsecmd=self.select_item)
@@ -174,8 +179,22 @@ class ApplicationInterface:
         self.cl.hlist.add(name, text=list_title)
         self.cl.setstatus(name, "off")
 
+    def get_playlist_name_uri(self, id: str, songs: list):
+        name, uri = None, None
+        for value in songs:
+            if(value['id'] == id):
+                name, uri = value['name'], value['uri']
+                break
+        return name, uri
+
     def select_item(self, item):
-        print(item, self.cl.getstatus(item))
+        if item.startswith('CL1'):
+            self.selected_songs.add(
+                self.SPOTIFY_TRACK_URI + item.split('.')[1])
+        if item.startswith('CL2'):
+            all_playlist: list = self.spotify_client.get_user_plalists()
+            self.playlist_name, self.uri = self.get_playlist_name_uri(
+                item.split('.')[1], all_playlist)
 
     def make_check_list(self, songs_list: list, name: str):
         if len(songs_list) > 0:
@@ -191,9 +210,38 @@ class ApplicationInterface:
                 except:
                     pass
 
+    async def read_file(self):
+        song_title = []
+        path = self.file_path.get()
+        if path != '':
+            with open(path, mode='r') as file:
+                csvreader = csv.reader(file)
+                for row in csvreader:
+                    new_row = row[0].split(";")
+                    if new_row[1] != 'Listen num':
+                        song_title.append(new_row[1])
+            for song in song_title:
+                sng = await self.read_sng(song)
+                self.text.insert("0.0", sng + '\n')
+                self.master.update()
+
+            self.create_checklist(self.frame, "CL1", "Listes des songs")
+            self.make_check_list(self.search_songs, "CL1.")
+            self.cl.autosetmode()
+            self.master.update()
+            self.entry.delete(0, END)
+            showinfo(
+                'Success', f'Opération terminée, vous avez téléchargé {len(song_title)} éléments')
+        else:
+            showwarning('Attention', 'Veuillez choisir un fichier csv!')
+
     def seperate_url(self, url: str):
         result = url.split('/')
         return result[len(result)-1]
+
+    def initialise(self):
+        self.selected_songs = set()
+        self.playlist_name = None
 
     def open_file(self):
         filetypes = (('csv files', '*.csv'), ('All files', '*.csv'))
@@ -215,9 +263,18 @@ class ApplicationInterface:
         return file.endswith('.mp3')
 
     def playlist_panel(self):
-        self.create_checklist(self.frame_playlist, 'CL2',
-                              'Listes des playlists')
-        self.add_playlist(name='CL2.', list_title='MyPlaylist')
+        all_playlist: list = self.spotify_client.get_user_plalists()
+        self.cl2 = tix.CheckList(
+            self.frame_playlist, browsecmd=self.select_item)
+        self.cl2.pack(fill=tkinter.BOTH, side=tkinter.LEFT,
+                      padx=15, pady=5, ipady=30, expand=1)
+        self.cl2.hlist.add('CL2', text='Listes des playlists')
+        self.cl2.setstatus('CL2', "off")
+        for value in all_playlist:
+            self.cl2.hlist.add('CL2.' + value['id'], text=value['name'])
+            self.cl2.setstatus('CL2.' + value['id'], "off")
+        self.cl2.config(width=200)
+        self.cl2.autosetmode()
 
     def rename_audio_file(self):
         path = self.song_path.get()
@@ -284,31 +341,6 @@ class ApplicationInterface:
             audio.save()
         else:
             showwarning('Warning', 'Veuillez ouvrir un fichier audio')
-
-    async def read_file(self):
-        song_title = []
-        path = self.file_path.get()
-        if path != '':
-            with open(path, mode='r') as file:
-                csvreader = csv.reader(file)
-                for row in csvreader:
-                    new_row = row[0].split(";")
-                    if new_row[1] != 'Listen num':
-                        song_title.append(new_row[1])
-            for song in song_title:
-                sng = await self.read_sng(song)
-                self.text.insert("0.0", sng + '\n')
-                self.master.update()
-
-            self.create_checklist(self.frame, "CL1", "Listes des songs")
-            self.make_check_list(self.search_songs, "CL1.")
-            self.cl.autosetmode()
-            self.master.update()
-            self.entry.delete(0, END)
-            showinfo(
-                'Success', f'Opération terminée, vous avez téléchargé {len(song_title)} éléments')
-        else:
-            showwarning('Attention', 'Veuillez choisir un fichier csv!')
 
     async def read_sng(self, query: str):
         spotify_link, artist_name, song_title = self.spotify_client.search_song(
@@ -393,8 +425,23 @@ class ApplicationInterface:
             except Exception as error:
                 logger.error('Error', error)
 
-    def add_track_in_playlist(self, playlist_name: str, tracks: list):
-        pass
+
+    def add_track_in_playlist(self):
+        try:
+            if self.playlist_name is not None and len(list(self.selected_songs)) >= 1:
+                self.spotify_client.add_items_in_playlist(
+                    playlist_name=self.playlist_name,
+                    tracks=list(self.selected_songs)
+                )
+                self.copy_paste_text(self.uri)
+                print(self.playlist_name, len(list(self.selected_songs)), self.uri)
+                showinfo(
+                    'Info', f'sons ajoutés à la playlist {self.playlist_name} avec succès, lien de la playlist copié')
+                self.initialise()
+            else:
+                showerror('Error', 'Veuillez selectionner au moins une playlist et au moins un son')
+        except Exception as error:
+            logger.error(error)
 
     def run_song_convert(self):
         asyncio.run(self.convert_mp3_to_wav())
@@ -427,6 +474,7 @@ class ApplicationInterface:
 if __name__ == "__main__":
     app = tix.Tk()
     gui = ApplicationInterface(app)
+    print(os.getcwd())
     # gui.set_song_metadata(
     #     "C:/Users/MasterGeek/Downloads/Telegram Desktop/Nouveau dossier/son.mp3")
     # gui.set_song_metadata(

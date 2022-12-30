@@ -8,13 +8,22 @@ import json
 import requests
 from spotipy.cache_handler import MemoryCacheHandler
 
+"""
+    gerer la version 
+    avec les patterns strategy.
+"""
+
 
 class SpotifyCustomer:
+
+    # SPOTIFY_CLIENT_ID = 'cde498d64fc64a6fab0906215a6605c3'
+    # SPOTIFY_CLIENT_SECRET_KEY = '67cb837c10ed4819b026d011e95b20c6'
+    # USER_ID = 'aj2by3b1b1oc45u1jj5cz2wxd'
 
     SPOTIFY_CLIENT_ID = None
     SPOTIFY_CLIENT_SECRET_KEY = None
     USER_ID = None
-    SPOTIPY_REDIRECT_URI = 'http://localhost:8080/'
+    SPOTIPY_REDIRECT_URI = 'https://localhost:8080/'
     scopes = 'playlist-modify-public, user-top-read, user-read-recently-played'
 
     def __init__(self) -> None:
@@ -37,21 +46,20 @@ class SpotifyCustomer:
             self.client = spotipy.Spotify(
                 auth_manager=self.auth_manager, language=None)
 
-    def is_token_expired(self):
+    def is_token_expired(self) -> bool:
         now = int(time.time())
         return self.client.auth_manager.cache_handler.get_cached_token()["expires_at"] - now < 60
 
-    def get_user_plalists(self):
+    def get_user_plalists(self) -> list:
         if not self.is_token_expired():
             user_playlist = []
             playlists = self.client.user_playlists(self.USER_ID)
             while playlists:
                 for i, playlist in enumerate(playlists['items']):
-                    print("%4d %s %s %s" % (
-                        i + 1 + playlists['offset'], playlist['uri'],  playlist['name'], playlist['id']))
                     user_playlist.append({
                         'name': playlist['name'],
-                        'id': playlist['id']
+                        'id': playlist['id'],
+                        'uri': playlist['external_urls']['spotify']
                     })
                 if playlists['next']:
                     playlists = self.client.next(playlists)
@@ -59,13 +67,13 @@ class SpotifyCustomer:
                     playlists = None
             return user_playlist
 
-    def get_specific_albums_tracks(self, album_id):
+    def get_specific_albums_tracks(self, album_id) -> any:
         if not self.is_token_expired():
             albums = self.client.album_tracks(
                 album_id, limit=50, offset=0, market=None)
             return albums
 
-    def get_artist(self, name):
+    def get_artist(self, name) -> str:
         if not self.is_token_expired():
             results = self.client.search(q='artist:' + name, type='artist')
             items = results['artists']['items']
@@ -74,7 +82,7 @@ class SpotifyCustomer:
             else:
                 return None
 
-    def show_artist_albums(self, artist):
+    def show_artist_albums(self, artist) -> None:
         if not self.is_token_expired():
             albums = []
             results = self.client.artist_albums(
@@ -91,24 +99,24 @@ class SpotifyCustomer:
                 if name not in seen:
                     seen.add(name)
 
-    def get_current_user(self):
+    def get_current_user(self) -> any:
         try:
             current_user = self.client.current_user()
             return current_user
         except Exception as err:
             print(err)
 
-    def get_user(self):
+    def get_user(self) -> any:
         user = self.client.user(self.USER_ID)
         if user is not None:
             return user
 
-    def get_playlist_items(self, playlist_id):
+    def get_playlist_items(self, playlist_id) -> str:
         playlist_items = self.client.playlist_items(
             playlist_id, fields=None, limit=100, offset=0, market=None, additional_types=('track', 'episode'))
         return playlist_items['items']
 
-    def search_song(self, query):
+    def search_song(self, query) -> tuple:
         song = self.client.search(query, limit=1, offset=0, type="track")
         return (
             song['tracks']['items'][0]['external_urls']['spotify'],
@@ -116,7 +124,7 @@ class SpotifyCustomer:
             song['tracks']['items'][0]['name']
         )
 
-    def create_playlists(self, playlist_name: str):
+    def create_playlists(self, playlist_name: str) -> bool:
         all_playlist = self.get_user_plalists()
         is_created = False
         for track in all_playlist:
@@ -132,7 +140,7 @@ class SpotifyCustomer:
             )
         return is_created
 
-    def is_playlist_exist(self, playlist_name: str):
+    def is_playlist_exist(self, playlist_name: str) -> tuple:
         all_playlist = self.get_user_plalists()
         track, exist = None, False
         for track in all_playlist:
@@ -141,7 +149,7 @@ class SpotifyCustomer:
                 break
         return track, exist
 
-    def add_items_in_playlist(self, playlist_name: str, tracks: list):
+    def add_items_in_playlist(self, playlist_name: str, tracks: list) -> None:
         if not self.is_token_expired():
             track, is_exist = self.is_playlist_exist(playlist_name)
             if is_exist:
