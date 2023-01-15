@@ -20,7 +20,6 @@ import eyed3
 import music_tag
 from pydub import AudioSegment
 from tkinter import tix
-import xlwt
 import requests.exceptions as internetException
 
 
@@ -514,8 +513,9 @@ class ApplicationInterface:
         except Exception as error:
             logger.error(error)
 
-    def insert_metadata_in_excel(self):
+    def insert_metadata_in_excel(self, file_path:str):
         pass
+
      
     def add_song_in_playlist(self):
         asyncio.run(self.add_track_in_playlist())

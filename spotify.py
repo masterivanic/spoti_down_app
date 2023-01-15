@@ -16,18 +16,10 @@ from spotipy.cache_handler import MemoryCacheHandler
 
 class SpotifyCustomer:
 
-    # SPOTIFY_CLIENT_ID = 'cde498d64fc64a6fab0906215a6605c3'
-    # SPOTIFY_CLIENT_SECRET_KEY = '67cb837c10ed4819b026d011e95b20c6'
-    # USER_ID = 'aj2by3b1b1oc45u1jj5cz2wxd'
-
-    # SPOTIFY_CLIENT_ID = '8beb6b6da13744148caa772bf8be21a1'
-    # SPOTIFY_CLIENT_SECRET_KEY = '6de9b86a59d3472a81f41e311df8f872'
-    # USER_ID = '31vuxosc6t3ovzgamaxxk3zr4rnm'
-
-    SPOTIFY_CLIENT_ID = 'a4b4b8fa7406451fbc8193d2da5936a1'
-    SPOTIFY_CLIENT_SECRET_KEY = 'fde4d41d55c4430282ed5b37868a89e8'
-    USER_ID = '31i7jfb73iitier5l2pongiclqyy'
-    SPOTIPY_REDIRECT_URI = 'https://ekilaradio.fr/'
+    SPOTIFY_CLIENT_ID = None
+    SPOTIFY_CLIENT_SECRET_KEY = None
+    USER_ID = None
+    SPOTIPY_REDIRECT_URI = 'https://localhost:8080/'
     scopes = 'playlist-modify-public, playlist-modify-private, user-top-read, user-read-recently-played'
 
     def __init__(self) -> None:
