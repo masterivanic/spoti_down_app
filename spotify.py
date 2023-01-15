@@ -16,11 +16,19 @@ from spotipy.cache_handler import MemoryCacheHandler
 
 class SpotifyCustomer:
 
-    SPOTIFY_CLIENT_ID = None
-    SPOTIFY_CLIENT_SECRET_KEY = None
-    USER_ID = None
-    SPOTIPY_REDIRECT_URI = 'https://localhost:8080/'
-    scopes = 'playlist-modify-public, user-top-read, user-read-recently-played'
+    # SPOTIFY_CLIENT_ID = 'cde498d64fc64a6fab0906215a6605c3'
+    # SPOTIFY_CLIENT_SECRET_KEY = '67cb837c10ed4819b026d011e95b20c6'
+    # USER_ID = 'aj2by3b1b1oc45u1jj5cz2wxd'
+
+    # SPOTIFY_CLIENT_ID = '8beb6b6da13744148caa772bf8be21a1'
+    # SPOTIFY_CLIENT_SECRET_KEY = '6de9b86a59d3472a81f41e311df8f872'
+    # USER_ID = '31vuxosc6t3ovzgamaxxk3zr4rnm'
+
+    SPOTIFY_CLIENT_ID = 'a4b4b8fa7406451fbc8193d2da5936a1'
+    SPOTIFY_CLIENT_SECRET_KEY = 'fde4d41d55c4430282ed5b37868a89e8'
+    USER_ID = '31i7jfb73iitier5l2pongiclqyy'
+    SPOTIPY_REDIRECT_URI = 'https://ekilaradio.fr/'
+    scopes = 'playlist-modify-public, playlist-modify-private, user-top-read, user-read-recently-played'
 
     def __init__(self) -> None:
 
@@ -33,6 +41,7 @@ class SpotifyCustomer:
         )
         #self.auth_manager = SpotifyClientCredentials(client_id=self.SPOTIFY_CLIENT_ID,client_secret=self.SPOTIFY_CLIENT_SECRET_KEY, cache_handler=None)
         token_info = self.auth_manager.get_access_token()
+        print(token_info)
 
         if isinstance(token_info, dict):
             self.auth_manager.cache_handler = MemoryCacheHandler(
@@ -132,7 +141,7 @@ class SpotifyCustomer:
             self.client.user_playlist_create(
                 self.USER_ID,
                 playlist_name,
-                public=False
+                public=True
             )
         return is_created
 
@@ -145,6 +154,19 @@ class SpotifyCustomer:
                 break
         return track, exist
 
+    def is_song_exist(self, playlist_title: str, song_uri: str) -> bool:
+        track, exist = self.is_playlist_exist(playlist_title)
+        is_uri = False
+        if track['name'] == playlist_title:
+            items = self.client.playlist(
+                playlist_id=track['id'], additional_types=('track', ))
+            for song in items['tracks']['items']:
+                if song_uri == song['track']['external_urls']['spotify']:
+                    is_uri = True
+                    print('exist')
+                    break
+        return is_uri
+
     def add_items_in_playlist(self, playlist_name: str, tracks: list) -> None:
         if not self.is_token_expired():
             track, is_exist = self.is_playlist_exist(playlist_name)
@@ -153,10 +175,11 @@ class SpotifyCustomer:
 
 
 if __name__ == '__main__':
-    SpotifyCustomer().get_user_plalists()
-    # print(SpotifyCustomer().get_user())
+    pass
     # print(SpotifyCustomer().get_current_user())
-    # print(SpotifyCustomer().get_playlist_items('0eLIikVh2b8Wg1ucYceFl'))
+    # print(SpotifyCustomer().get_playlist_items('4NsW8vXmReVBLB6wjlB9yo'))
+    #value = SpotifyCustomer().is_song_exist('TestSpotify', 'https://open.spotify.com/track/78js60sgt5lq9zEnlHg9WB')
+    # print(value)
     # SpotifyCustomer().create_playlists('MyPlaylist1')
     # SpotifyCustomer().add_items_in_playlist('Beest', [
     #     'https://open.spotify.com/track/27qAMKrDdKEs8HDXcvR24R?si=fd135908b26f40a0'])

@@ -1,7 +1,6 @@
 # coding:utf-8
 
 from tkinter import *
-from tkinter.ttk import Treeview
 from tkinter import simpledialog
 from tkinter.filedialog import askopenfilename, askdirectory
 from tkinter.filedialog import *
@@ -15,14 +14,15 @@ from exceptions import SpotifyCustomerException
 import csv
 import asyncio
 import logging
-import sys
 import os
 import tkinter
 import eyed3
 import music_tag
 from pydub import AudioSegment
 from tkinter import tix
-from PIL import Image, ImageTk
+import xlwt
+import requests.exceptions as internetException
+
 
 __all__ = ["SpotifyCustomerException"]
 
@@ -43,7 +43,7 @@ class ApplicationInterface:
     global logger
     logger = logging.getLogger(__name__)
 
-    def __init__(self, master) -> None:
+    def __init__(self, master):
         self.file = None
         self.file_mp3 = None
         self.master = master
@@ -52,13 +52,14 @@ class ApplicationInterface:
         self.uri = None
         self.selected_songs = set()
         self.spotify_client = SpotifyCustomer()
-        master.title('Spotify Download')
-        master.resizable(width=True, height=True)
+        self.master.title('Ekila Downloader')
+        self.master.iconbitmap("images/logo.ico")
+        self.master.resizable(width=False, height=False)
 
         # setup toolbar----------------------------------------------------
-        menu_bar = Menu(master)
+        menu_bar = Menu(self.master)
 
-        master.config(menu=menu_bar)
+        self.master.config(menu=menu_bar)
 
         menu_file = Menu(menu_bar, tearoff=0)
         menu_help = Menu(menu_bar, tearoff=0)
@@ -70,11 +71,11 @@ class ApplicationInterface:
             label='Ouvrir un fichier csv', command=self.open_file)
         menu_file.add_cascade(
             label='Ouvrir un fichier audio', command=self.open_file_mp3)
-        menu_file.add_cascade(label='Ouvrir un dossier',
+        menu_file.add_cascade(label='Ouvrir un dossier contenant les sons',
                               command=self.open_song_folder)
         menu_file.add_separator()
         menu_file.add_cascade(
-            label='Creer une playlist spotify', command=self.create_playlists)
+            label='Créer une playlist ekila', command=self.create_playlists)
         menu_file.add_separator()
         menu_file.add_cascade(label='Vider', command=self.clear_all)
         menu_file.add_separator()
@@ -82,7 +83,7 @@ class ApplicationInterface:
         menu_help.add_command(label='A propos', command=self.about)
 
         # setup bar navigation----------------------------------------------
-        note = ttk.Notebook(master, width=900, height=400)
+        note = ttk.Notebook(self.master, width=900, height=400)
         note.grid_rowconfigure(0, weight=1)
         note.grid_columnconfigure(0, weight=1)
         note.grid(row=0, pady=10)
@@ -91,14 +92,14 @@ class ApplicationInterface:
         self.page_one.grid(row=0, column=0)
 
         self.page_two = ttk.Frame(note)
-        self.page_two.grid(row=0, column=1)
+        self.page_two.grid(row=0, column=0)
 
         self.page_tree = ttk.Frame(note)
-        self.page_tree.grid(row=0, column=2)
+        self.page_tree.grid(row=0, column=0)
 
-        note.add(self.page_one, text='Spotify stream')
-        note.add(self.page_two, text='Modified music name')
-        note.add(self.page_tree, text='Insert song in playlist')
+        note.add(self.page_one, text='Ekila stream')
+        note.add(self.page_two, text='Insertion des sons')
+        note.add(self.page_tree, text='Conversions wav et modification')
 
         # setup widget 😀 ----------------------------------------------------
 
@@ -110,109 +111,111 @@ class ApplicationInterface:
         Label(self.page_one, text="Fichier CSV:", font='Helvetica 10 bold').grid(
             row=4, columnspan=3, pady=10, padx=15)
         self.entry = Entry(self.page_one, width=60,
-                           textvariable=self.file_path)
+                           state='readonly',  textvariable=self.file_path)
         self.entry.grid(row=4, column=3, pady=10, ipady=6)
 
-        Label(self.page_one, text="Liens spotify:", font='Helvetica 10 bold').grid(
+        Label(self.page_one, text="Liste des sons:", font='Helvetica 10 bold').grid(
             row=5, columnspan=3, pady=10, padx=15)
 
         self.text = ScrolledText(
             self.page_one, height=10, width=80, pady=2, padx=3, undo=True)
         self.text.grid(row=5, column=3, pady=10, ipady=6)
-        self.text.focus()
-        self.text.pack_forget()
+        self.text.configure(bg='#c8d3e6')
         Button(self.page_one, text="Generer", width=10, bg='green',
                command=self.generate_link).grid(row=6, column=1, padx=1, pady=10, ipady=6)
 
         # ---------------------- second window -------------------------------------
         self.song_path = StringVar()
-        Label(self.page_two, text="Fichier mp3:", font='Helvetica 10 bold').grid(
-            row=4, columnspan=3, pady=10, padx=15)
+        Label(self.page_tree, text="Fichier mp3:", font='Helvetica 10 bold').grid(
+            row=4, column=0, columnspan=3, pady=10, padx=10)
         self.entry_song_path = Entry(
-            self.page_two, width=60, textvariable=self.song_path, cursor=None)
+            self.page_tree, width=60, state='readonly', textvariable=self.song_path)
         self.entry_song_path.grid(row=4, column=3, pady=10, ipady=6)
 
-        Label(self.page_two, text="Fichier renommé:", font='Helvetica 10 bold').grid(
-            row=5, columnspan=3, pady=10, padx=15)
+        Label(self.page_tree, text="Resultat:", font='Helvetica 10 bold').grid(
+            row=5, column=0, columnspan=3, pady=10, padx=10)
         self.song_rename = ScrolledText(
-            self.page_two, height=10, width=80, pady=2, padx=3, undo=True)
-        self.song_rename.grid(row=5, column=3, pady=10, ipady=6)
-        Button(self.page_two, text="Renommer", width=10, bg='red',
-               command=self.rename_audio_file).grid(row=6, column=1, padx=10, pady=10, ipady=6)
-        Button(self.page_two, text="Modifier metadata", width=15, bg='green',
-               command=self.modify_metadata).grid(row=6, column=2, padx=10, pady=10, ipady=6)
-        Button(self.page_two, text="Convertir en wav", width=15, bg='white', fg='black',
-               command=self.run_song_convert).grid(row=6, column=3, padx=10, pady=10, ipady=6)
+            self.page_tree, height=10, width=80, undo=True)
+        self.song_rename.grid(row=5, column=3, pady=5)
+        self.song_rename.configure(bg='#c8d3e6')
+        # Button(self.page_tree, text="Renommer", width=10, bg='red',
+        #        command=self.rename_audio_file).grid(row=6, column=1, padx=10, pady=10, ipady=6)
+        Button(self.page_tree, text="Modifier métadata", width=15, bg='green',
+               command=self.modify_metadata).grid(row=6, column=2, pady=3, padx=2)
+        Button(self.page_tree, text="Convertir en wav", width=15, bg='white', fg='black',
+               command=self.run_song_convert).grid(row=6, column=3, pady=3, padx=0)
 
         # ---------------------- third window -------------------------------------
 
-        self.frame = Frame(self.page_tree)
+        self.frame = Frame(self.page_two)
         self.frame.grid(row=0, column=0, columnspan=5, padx=5, pady=10)
 
-        self.btn_frame = Frame(self.page_tree)
+        self.btn_frame = Frame(self.page_two)
         self.btn_frame.grid(row=4, column=0, padx=5)
 
-        self.frame_playlist = Frame(self.page_tree)
+        self.frame_playlist = Frame(self.page_two)
         self.frame_playlist.grid(
             row=0, column=8, columnspan=5, padx=50, pady=10)
 
         self.playlist_panel()
+        self.songs_panel([])
 
-        Button(self.btn_frame, text="Transferer", width=15, bg='green',
-               command=self.add_track_in_playlist).grid(row=1, column=0)
-        Button(self.btn_frame, text="Copier le lien de la playlist", width=25, bg='red',
-               command=self.copy_paste_text).grid(row=1, column=5, padx=5)
+        Button(self.btn_frame, text="Transférer", width=15, bg='green',
+               command=self.add_song_in_playlist).grid(row=1, column=0)
+        Button(self.btn_frame, text="Supprimer", width=15, bg='red',
+               command=self.delete_item).grid(row=1, column=3, padx=5)
 
     def copy_paste_text(self, text: str):
         self.master.clipboard_clear()
         self.master.clipboard_append(text)
-        print('done')
-
-    def create_checklist(self, frame: Frame, name: str, list_title: str):
-        self.cl = tix.CheckList(frame, browsecmd=self.select_item)
-        self.cl.pack(fill=tkinter.BOTH, side=tkinter.LEFT,
-                     padx=5, pady=5, ipady=30, expand=1)
-        self.cl.hlist.add(name, text=list_title)
-        self.cl.setstatus(name, "off")
-
-    def add_playlist(self, name: str, list_title: str):
-        self.cl.hlist.add(name, text=list_title)
-        self.cl.setstatus(name, "off")
 
     def get_playlist_name_uri(self, id: str, songs: list):
         name, uri = None, None
         for value in songs:
-            if(value['id'] == id):
+            if value['id'] == id:
                 name, uri = value['name'], value['uri']
                 break
         return name, uri
 
+    def deselect_items(self):
+        for item in self.cl.getselection('on'):
+            self.cl.setstatus(item, "off")
+        for item in self.cl2.getselection('on'):
+            self.cl2.setstatus(item, "off")
+
+    def get_selected_songs(self):
+        for item in self.cl.getselection('on'):
+            if item.startswith('CL1'):
+                self.selected_songs.add(
+                    self.SPOTIFY_TRACK_URI + item.split('.')[1])
+
     def select_item(self, item):
         if item.startswith('CL1'):
-            self.selected_songs.add(
-                self.SPOTIFY_TRACK_URI + item.split('.')[1])
+            print(item, self.cl.getstatus(item))
+
         if item.startswith('CL2'):
-            all_playlist: list = self.spotify_client.get_user_plalists()
+            all_playlist = self.spotify_client.get_user_plalists()
             self.playlist_name, self.uri = self.get_playlist_name_uri(
                 item.split('.')[1], all_playlist)
 
-    def make_check_list(self, songs_list: list, name: str):
-        if len(songs_list) > 0:
-            for obj in songs_list:
-                try:
-                    self.cl.hlist.add(
-                        name + self.seperate_url(obj['song_link']),
-                        text=obj['artist'] + ' - ' + obj['title']
-                    )
-                    self.cl.setstatus(
-                        name + self.seperate_url(obj['song_link']), "off")
-                    self.cl.config(width=500)
-                except:
-                    pass
+    def delete_item(self):
+        items = self.cl.getselection('on')
+        if len(items) > 0:
+            for item in self.cl.getselection('on'):
+                self.cl.hlist.delete_entry(item)
+            self.master.update()
+        else:
+            showwarning('Warning', 'Aucun son sélectionné')
+
+    def initialise_entry(self):
+        self.file_path.set('')
+        self.text.delete('1.0', END)
 
     async def read_file(self):
         song_title = []
+        self.search_songs = []
         path = self.file_path.get()
+        i = 0
         if path != '':
             with open(path, mode='r') as file:
                 csvreader = csv.reader(file)
@@ -222,16 +225,16 @@ class ApplicationInterface:
                         song_title.append(new_row[1])
             for song in song_title:
                 sng = await self.read_sng(song)
-                self.text.insert("0.0", sng + '\n')
+                self.text.insert(tkinter.INSERT, str(i) + '. ' + song + '\n')
+                i = i + 1
                 self.master.update()
 
-            self.create_checklist(self.frame, "CL1", "Listes des songs")
-            self.make_check_list(self.search_songs, "CL1.")
-            self.cl.autosetmode()
+            self.cl.pack_forget()
+            self.songs_panel(self.search_songs)
             self.master.update()
-            self.entry.delete(0, END)
             showinfo(
                 'Success', f'Opération terminée, vous avez téléchargé {len(song_title)} éléments')
+            self.initialise_entry()
         else:
             showwarning('Attention', 'Veuillez choisir un fichier csv!')
 
@@ -247,20 +250,49 @@ class ApplicationInterface:
         filetypes = (('csv files', '*.csv'), ('All files', '*.csv'))
         self.file = askopenfilename(
             title='ouvrir un fichier', filetypes=filetypes)
+        self.file_path.set(str(self.file))
+        if self.file_path.get() != '':
+            self.entry.delete(0, END)
         self.entry.insert(0, str(self.file))
 
     def open_file_mp3(self):
-        filetypes = (('mp3 files', '*.mp3'), ('All songs files', '*.csv'))
+        filetypes = (('mp3 files', '*.mp3'), ('All songs files', '*.mp3'))
         self.file_mp3 = askopenfilename(
             title='ouvrir un fichier audio', filetypes=filetypes)
+        self.song_path.set(str(self.file_mp3))
+        if self.song_path.get() != '':
+            self.entry_song_path.delete(0, END)
         self.entry_song_path.insert(0, str(self.file_mp3))
 
     def open_song_folder(self):
         path = askdirectory(title='Selectionner un dossier')
+        self.song_path.set(str(path))
+        if self.song_path.get() != '':
+            self.entry_song_path.delete(0, END)
         self.entry_song_path.insert(0, str(path))
 
     def is_mp3(self, file: str):
         return file.endswith('.mp3')
+
+    def songs_panel(self, songs_list):
+        self.cl = tix.CheckList(self.frame, browsecmd=self.select_item)
+        self.cl.pack(fill=tkinter.BOTH, side=tkinter.LEFT,
+                     padx=5, pady=5, ipady=30, expand=1)
+        self.cl.hlist.add("CL1", text="Listes des songs")
+        self.cl.setstatus("CL1", "off")
+        if len(songs_list) > 0:
+            for obj in songs_list:
+                try:
+                    self.cl.hlist.add(
+                        "CL1." + self.seperate_url(obj['song_link']),
+                        text=obj['artist'] + ' - ' + obj['title']
+                    )
+                    self.cl.setstatus(
+                        "CL1." + self.seperate_url(obj['song_link']), "off")
+                    self.cl.config(width=550, height=200)
+                except:
+                    pass
+            self.cl.autosetmode()
 
     def playlist_panel(self):
         all_playlist: list = self.spotify_client.get_user_plalists()
@@ -273,7 +305,7 @@ class ApplicationInterface:
         for value in all_playlist:
             self.cl2.hlist.add('CL2.' + value['id'], text=value['name'])
             self.cl2.setstatus('CL2.' + value['id'], "off")
-        self.cl2.config(width=200)
+        self.cl2.config(width=250, height=200)
         self.cl2.autosetmode()
 
     def rename_audio_file(self):
@@ -307,6 +339,8 @@ class ApplicationInterface:
             if path:
                 if path.endswith('.mp3'):
                     await self.set_song_metadata(path)
+                    showinfo(
+                        'info', 'Données du fichier(s) audio(s) modifiées avec succès')
                 else:
                     directory = os.listdir(path)
                     if len(directory) > 0:
@@ -322,7 +356,7 @@ class ApplicationInterface:
                             'info', 'Données du fichier(s) audio(s) modifiées avec succès')
                     else:
                         showerror('Error', 'dossier vide')
-                self.entry_song_path.delete(0, END)
+                self.song_path.set('')
             else:
                 showwarning(
                     'Attention', 'Veuillez choisir un fichier audio ou un dossier!')
@@ -333,14 +367,17 @@ class ApplicationInterface:
     # ajout de la modification de la pochette
     async def set_song_metadata(self, path: str):
         if path:
-            audio = music_tag.load_file(path)
-            audiofile = eyed3.load(path)
-            audio['artist'] = audiofile.tag.artist.upper()
-            audio['albumartist'] = audiofile.tag.artist.upper()
-            audio['isrc'] = ''
-            audio.save()
-        else:
-            showwarning('Warning', 'Veuillez ouvrir un fichier audio')
+            try:
+                audio = music_tag.load_file(path)
+                audiofile = eyed3.load(path)
+                if audio['artist'] is not None and audio['albumartist'] is not None:
+                    print(audio)
+                    audio['artist'] = audiofile.tag.artist.upper()
+                    audio['albumartist'] = audiofile.tag.artist.upper()
+                    audio['isrc'] = ''
+                    audio.save()
+            except Exception as err:
+                logger.error(err)
 
     async def read_sng(self, query: str):
         spotify_link, artist_name, song_title = self.spotify_client.search_song(
@@ -358,6 +395,7 @@ class ApplicationInterface:
                 'artist': artist_name,
                 'title': song_title
             })
+
         return spotify_link
 
     async def mp3_to_wav(self, file: str):
@@ -380,6 +418,11 @@ class ApplicationInterface:
         except Exception as error:
             logger.error(error)
 
+    def create_loader(self, frame, text, row, column):
+        self.loader = Label(frame, text=text, font='Helvetica 12 bold')
+        self.loader.grid(row=row, column=column, pady=5)
+        self.master.update()
+
     async def convert_mp3_to_wav(self):
         path = self.song_path.get()
         try:
@@ -390,17 +433,21 @@ class ApplicationInterface:
                 else:
                     directory = os.listdir(path)
                     if len(directory) > 0:
+                        self.create_loader(
+                            self.page_tree, "Conversion en cours...", 8, 3)
                         for file in directory:
                             is_file_mp3 = self.is_mp3(file)
                             if is_file_mp3:
                                 await self.mp3_to_wav(path + '/' + file)
                             else:
                                 pass
+                        self.loader.grid_forget()
+                        self.master.update()
                         showinfo(
                             'Info', 'Tous les fichiers convertis avec succès')
                     else:
                         showerror('Error', 'Dossier vide')
-                self.entry_song_path.delete(0, END)
+                self.song_path.set('')
             else:
                 showwarning(
                     'Attention', 'Veuillez choisir un dossier de fichier mp3!')
@@ -422,26 +469,56 @@ class ApplicationInterface:
                 else:
                     showwarning(
                         'Attention', 'la playlist {} existe déjà'.format(answer))
+                self.cl2.pack_forget()
+                self.playlist_panel()
             except Exception as error:
                 logger.error('Error', error)
 
+    async def check_song_exist_in_playlist(self, playlist_title: str, song_uri: str):
+        value = self.spotify_client.is_song_exist(playlist_title, song_uri)
+        return value
 
-    def add_track_in_playlist(self):
+    async def add_track_in_playlist(self):
+        song_to_send = []
+        self.get_selected_songs()
         try:
             if self.playlist_name is not None and len(list(self.selected_songs)) >= 1:
-                self.spotify_client.add_items_in_playlist(
-                    playlist_name=self.playlist_name,
-                    tracks=list(self.selected_songs)
-                )
-                self.copy_paste_text(self.uri)
-                print(self.playlist_name, len(list(self.selected_songs)), self.uri)
-                showinfo(
-                    'Info', f'sons ajoutés à la playlist {self.playlist_name} avec succès, lien de la playlist copié')
-                self.initialise()
+                self.create_loader(
+                    self.btn_frame, "Transfert en cours...", 2, 3)
+                for song_uri in self.selected_songs:
+                    exist = await self.check_song_exist_in_playlist(self.playlist_name, song_uri)
+                    if not exist:
+                        song_to_send.append(song_uri)
+
+                if len(song_to_send) > 0:
+                    self.spotify_client.add_items_in_playlist(
+                        playlist_name=self.playlist_name,
+                        tracks=song_to_send
+                    )
+                    self.copy_paste_text(self.uri)
+                    self.loader.grid_forget()
+                    self.master.update()
+                    showinfo(
+                        'Info', f'sons ajoutés à la playlist {self.playlist_name} avec succès, lien de la playlist copié')
+                    self.initialise()
+                    self.deselect_items()
+                else:
+                    self.loader.grid_forget()
+                    self.master.update()
+                    showwarning(
+                        'Warning', f'un ou plusieurs sons sélectionnés existent déjà dans la playlist {self.playlist_name}')
             else:
-                showerror('Error', 'Veuillez selectionner au moins une playlist et au moins un son')
+                showerror(
+                    'Error', 'Veuillez selectionner au moins une playlist et au moins un son')
+
         except Exception as error:
             logger.error(error)
+
+    def insert_metadata_in_excel(self):
+        pass
+     
+    def add_song_in_playlist(self):
+        asyncio.run(self.add_track_in_playlist())
 
     def run_song_convert(self):
         asyncio.run(self.convert_mp3_to_wav())
@@ -453,7 +530,8 @@ class ApplicationInterface:
         asyncio.run(self.set_many_songs_metadata())
 
     def clear_all(self):
-        self.entry.delete(0, END)
+        self.file_path.set('')
+        # self.song_path.set('')
         self.text.delete("0.0", END)
 
     def get_info_entry(self):
@@ -461,27 +539,22 @@ class ApplicationInterface:
 
     def quit(self):
         entry = askyesno(
-            title='Exit', message='Are you sure you want to exit?')
+            title='Exit', message='Etes vous sur de vouloir quitter?')
         if entry:
             self.master.destroy()
 
     def about(self):
         showinfo(title='A propos',
-                 message='SpotiDown v0.1, copyright @MasterGeek inc.')
+                 message='Ekila Downloader v0.1, copyright MNLV Africa \n Droits réservés')
 
 
 # ----------setup application--------------------
 if __name__ == "__main__":
-    app = tix.Tk()
-    gui = ApplicationInterface(app)
-    print(os.getcwd())
-    # gui.set_song_metadata(
-    #     "C:/Users/MasterGeek/Downloads/Telegram Desktop/Nouveau dossier/son.mp3")
-    # gui.set_song_metadata(
-    #     "C:/Users/MasterGeek/Downloads/Telegram Desktop/isaac/isaac m. - Nalingaka yo.mp3")
-    # print(ApplicationInterface.__doc__)
-    # gui.mp3_to_wav(
-    #     "C:/Users/MasterGeek/Downloads/Telegram Desktop/Nouveau dossier/eben.mp3")
-    # gui.mp3_to_wav(
-    #     "C:/Users/MasterGeek/Downloads/Telegram Desktop/Nouveau dossier/son.mp3")
-    app.mainloop()
+    try:
+        app = tix.Tk()
+        gui = ApplicationInterface(app)
+        app.mainloop()
+    except internetException.ConnectionError as err:
+        showerror(
+            'Erreur', 'mauvaise connexion \n Vérifier votre connexion internet puis relancer')
+
