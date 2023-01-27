@@ -1,8 +1,16 @@
 __pycache__
 output
+.dockerignore
+Dockerfile
 .cache
 error.log
-downloader.py
 spotifyLib.py
+file.py
 wintest.py
 sample.json
+EkilaDownloader
+setup.py
+setup
+Test
+requirements.txt
+

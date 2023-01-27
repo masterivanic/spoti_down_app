@@ -21,6 +21,7 @@ import music_tag
 from pydub import AudioSegment
 from tkinter import tix
 import requests.exceptions as internetException
+from crypto import SimpleEncryption
 
 
 __all__ = ["SpotifyCustomerException"]
@@ -39,6 +40,8 @@ class ApplicationInterface:
         datefmt='%m/%d/%Y %I:%M:%S %p',
     )
     SPOTIFY_TRACK_URI = 'https://open.spotify.com/track/'
+    SPOTIFY_PLAYLIST_URI = 'https://open.spotify.com/playlist/'
+
     global logger
     logger = logging.getLogger(__name__)
 
@@ -50,6 +53,7 @@ class ApplicationInterface:
         self.playlist_name = None
         self.uri = None
         self.selected_songs = set()
+        self.playlist_id = None
         self.spotify_client = SpotifyCustomer()
         self.master.title('Ekila Downloader')
         self.master.iconbitmap("images/logo.ico")
@@ -75,6 +79,9 @@ class ApplicationInterface:
         menu_file.add_separator()
         menu_file.add_cascade(
             label='Créer une playlist ekila', command=self.create_playlists)
+        menu_file.add_cascade(
+            label='Copier le lien de la playlist', command=self.get_selected_playlist_link)
+        menu_file.add_cascade(label='Supprimer une playlist', command=self.delete_playlist)
         menu_file.add_separator()
         menu_file.add_cascade(label='Vider', command=self.clear_all)
         menu_file.add_separator()
@@ -96,9 +103,13 @@ class ApplicationInterface:
         self.page_tree = ttk.Frame(note)
         self.page_tree.grid(row=0, column=0)
 
+        self.page_four = ttk.Frame(note)
+        self.page_four.grid(row=0, column=0)
+
         note.add(self.page_one, text='Ekila stream')
         note.add(self.page_two, text='Insertion des sons')
         note.add(self.page_tree, text='Conversions wav et modification')
+        note.add(self.page_four, text='Téléchargement des sons')
 
         # setup widget 😀 ----------------------------------------------------
 
@@ -164,6 +175,24 @@ class ApplicationInterface:
         Button(self.btn_frame, text="Supprimer", width=15, bg='red',
                command=self.delete_item).grid(row=1, column=3, padx=5)
 
+        # ---------------------- fourth window -------------------------------------
+        self.sp_link = StringVar()
+        Label(self.page_four, text="Lien playlist:", font='Helvetica 10 bold').grid(
+            row=4, columnspan=3, pady=10, padx=15)
+        self.entry_sp_link = Entry(
+            self.page_four, width=60, textvariable=self.sp_link)
+        self.entry_sp_link.grid(row=4, column=3, pady=10, ipady=6)
+
+        Label(self.page_four, text="Liste des sons:", font='Helvetica 10 bold').grid(
+            row=5, columnspan=3, pady=10, padx=15)
+
+        self.song_download = ScrolledText(
+            self.page_four, height=10, width=80, pady=2, padx=3, undo=True)
+        self.song_download.grid(row=5, column=3, pady=10, ipady=6)
+        self.song_download.configure(bg='#c8d3e6')
+        Button(self.page_four, text="Télécharger", width=10, bg='green',
+               command=self.download_song).grid(row=6, column=1, padx=1, pady=10, ipady=6)
+
     def copy_paste_text(self, text: str):
         self.master.clipboard_clear()
         self.master.clipboard_append(text)
@@ -176,32 +205,95 @@ class ApplicationInterface:
                 break
         return name, uri
 
+    def select_child(self, item):
+        if item.startswith('CL2'):
+            children = self.cl2.hlist.info_children(item)
+            status = self.cl2.getstatus(item)
+            for child in children:
+                self.cl2.setstatus(child, status)
+
+        if item.startswith('CL1'):
+            children = self.cl.hlist.info_children(item)
+            status = self.cl.getstatus(item)
+            for child in children:
+                self.cl.setstatus(child, status)
+
+    def select_children(self, item):
+        if item.startswith('CL2'):
+            children = self.cl2.hlist.info_children(item)
+            status = self.cl2.getstatus(item)
+
+            for child in children:
+                self.cl2.setstatus(child, status)
+                grand_child = self.cl2.hlist.info_children(child)
+                while grand_child:
+                    for x in grand_child:
+                        self.cl2.setstatus(x, status)
+                        grand_child = self.cl2.hlist.info_children(x)
+
     def deselect_items(self):
         for item in self.cl.getselection('on'):
             self.cl.setstatus(item, "off")
         for item in self.cl2.getselection('on'):
             self.cl2.setstatus(item, "off")
 
+    def delete_playlist(self):
+        self.get_selected_playlist()
+        try:
+            if self.playlist_id is not None:
+                entry = askyesno(title='Suppression', message='Voulez vous supprimer cette playlist?')
+                if entry:
+                    self.spotify_client.delete_playlist(self.playlist_id)
+                    self.cl2.pack_forget()
+                    self.playlist_panel()
+        except Exception as error:
+            logger.error(error)
+            showerror('Error', error)
+
     def get_selected_songs(self):
         for item in self.cl.getselection('on'):
-            if item.startswith('CL1'):
+            if item.startswith('CL1.'):
                 self.selected_songs.add(
                     self.SPOTIFY_TRACK_URI + item.split('.')[1])
 
-    def select_item(self, item):
-        if item.startswith('CL1'):
-            print(item, self.cl.getstatus(item))
+    def get_selected_playlist_link(self):
+        self.get_selected_playlist()
+        if self.playlist_id is not None:
+            playlist_uri = self.SPOTIFY_PLAYLIST_URI + self.playlist_id
+            encrypted_link = SimpleEncryption(url=playlist_uri)._encrypt_url()
+            self.copy_paste_text(encrypted_link)
+            showinfo('Info', 'Lien copié crypté')
+        else:
+            showwarning('Warning', 'sélectionner une seule playlist')
 
-        if item.startswith('CL2'):
-            all_playlist = self.spotify_client.get_user_plalists()
-            self.playlist_name, self.uri = self.get_playlist_name_uri(
-                item.split('.')[1], all_playlist)
+    def get_selected_playlist(self):
+        info = self.cl2.hlist.info_selection()
+        self.playlist_id = None
+
+        if len(info) == 0:
+            showwarning('Warning', 'aucune playlist sélectionné')
+
+        if len(info) == 1:
+            if info[0] == 'CL2':
+                showwarning('Warning', 'veuillez choisir une seule playlist')
+            else:
+                if len(info[0].split('.')) > 2:
+                    showwarning(
+                        'Warning', 'veuillez choisir une playlist correcte')
+                else:
+                    self.playlist_id = info[0].split('.')[1]
+
+        if len(info) > 1:
+            showwarning('Warning', 'veuillez choisir une playlist')
 
     def delete_item(self):
         items = self.cl.getselection('on')
         if len(items) > 0:
-            for item in self.cl.getselection('on'):
-                self.cl.hlist.delete_entry(item)
+            for item in items:
+                if item.startswith('CL1.'):
+                    self.cl.hlist.delete_entry(item)
+                else:
+                    pass
             self.master.update()
         else:
             showwarning('Warning', 'Aucun son sélectionné')
@@ -274,10 +366,11 @@ class ApplicationInterface:
         return file.endswith('.mp3')
 
     def songs_panel(self, songs_list):
-        self.cl = tix.CheckList(self.frame, browsecmd=self.select_item)
+        self.cl = tix.CheckList(
+            self.frame, command=self.select_child, browsecmd=self.select_child)
         self.cl.pack(fill=tkinter.BOTH, side=tkinter.LEFT,
                      padx=5, pady=5, ipady=30, expand=1)
-        self.cl.hlist.add("CL1", text="Listes des songs")
+        self.cl.hlist.add("CL1", text=f"Listes des songs : {len(songs_list)} sons")
         self.cl.setstatus("CL1", "off")
         if len(songs_list) > 0:
             for obj in songs_list:
@@ -288,15 +381,15 @@ class ApplicationInterface:
                     )
                     self.cl.setstatus(
                         "CL1." + self.seperate_url(obj['song_link']), "off")
-                    self.cl.config(width=550, height=200)
                 except:
                     pass
+            self.cl.config(width=350, height=200)
             self.cl.autosetmode()
 
     def playlist_panel(self):
         all_playlist: list = self.spotify_client.get_user_plalists()
         self.cl2 = tix.CheckList(
-            self.frame_playlist, browsecmd=self.select_item)
+            self.frame_playlist, command=self.select_children, browsecmd=self.select_children)
         self.cl2.pack(fill=tkinter.BOTH, side=tkinter.LEFT,
                       padx=15, pady=5, ipady=30, expand=1)
         self.cl2.hlist.add('CL2', text='Listes des playlists')
@@ -304,7 +397,18 @@ class ApplicationInterface:
         for value in all_playlist:
             self.cl2.hlist.add('CL2.' + value['id'], text=value['name'])
             self.cl2.setstatus('CL2.' + value['id'], "off")
-        self.cl2.config(width=250, height=200)
+
+            songs = self.spotify_client._get_playlist_tracks(value['id'], True)
+            for item in songs:
+                try:
+                    self.cl2.hlist.add(
+                        'CL2.' + value['id'] + '.' + item.id, text=item.__str__())
+                    self.cl2.setstatus(
+                        'CL2.' + value['id'] + '.' + item.id, "off")
+                except:
+                    pass
+
+        self.cl2.config(width=400, height=200)
         self.cl2.autosetmode()
 
     def rename_audio_file(self):
@@ -474,49 +578,91 @@ class ApplicationInterface:
                 logger.error('Error', error)
 
     async def check_song_exist_in_playlist(self, playlist_title: str, song_uri: str):
-        value = self.spotify_client.is_song_exist(playlist_title, song_uri)
-        return value
+        return self.spotify_client.is_song_exist(playlist_title, song_uri)
 
     async def add_track_in_playlist(self):
         song_to_send = []
         self.get_selected_songs()
-        try:
-            if self.playlist_name is not None and len(list(self.selected_songs)) >= 1:
-                self.create_loader(
-                    self.btn_frame, "Transfert en cours...", 2, 3)
-                for song_uri in self.selected_songs:
-                    exist = await self.check_song_exist_in_playlist(self.playlist_name, song_uri)
-                    if not exist:
-                        song_to_send.append(song_uri)
+        self.get_selected_playlist()
 
-                if len(song_to_send) > 0:
-                    self.spotify_client.add_items_in_playlist(
-                        playlist_name=self.playlist_name,
-                        tracks=song_to_send
-                    )
-                    self.copy_paste_text(self.uri)
-                    self.loader.grid_forget()
-                    self.master.update()
-                    showinfo(
-                        'Info', f'sons ajoutés à la playlist {self.playlist_name} avec succès, lien de la playlist copié')
-                    self.initialise()
-                    self.deselect_items()
+        if self.playlist_id is not None:
+            playlist_title = self.spotify_client._get_playlist_name(
+                self.playlist_id)
+
+            try:
+                if playlist_title is not None and len(list(self.selected_songs)) >= 1:
+                    for song_uri in self.selected_songs:
+                        exist = await self.check_song_exist_in_playlist(playlist_title, song_uri)
+                        if not exist:
+                            song_to_send.append(song_uri)
+
+                    if len(song_to_send) == 0:
+                        showwarning(
+                            'Warning', f'un ou plusieurs sons sélectionnés existent déjà dans la playlist, veuillez reselectionner')
+                    elif len(song_to_send) > 0:
+                        try:
+                            self.create_loader(
+                                self.btn_frame, "Transfert en cours...", 2, 3)
+                            await self.spotify_client.add_items_in_playlist(
+                                playlist_name=playlist_title,
+                                tracks=song_to_send
+                            )
+                            self.copy_paste_text(self.uri)
+                            self.loader.grid_forget()
+                            self.master.update()
+                            showinfo(
+                                'Info', f'sons ajoutés à la playlist {playlist_title} avec succès, lien de la playlist copié')
+                            self.initialise()
+                            self.deselect_items()
+                            self.cl2.pack_forget()
+                            self.playlist_panel()
+                        except Exception as error:
+                            showerror('Error', error)
+                    else:
+                        self.loader.grid_forget()
+                        self.master.update()
+                        showwarning(
+                            'Warning', f'un ou plusieurs sons sélectionnés existent déjà dans la playlist {playlist_title}')
                 else:
-                    self.loader.grid_forget()
-                    self.master.update()
-                    showwarning(
-                        'Warning', f'un ou plusieurs sons sélectionnés existent déjà dans la playlist {self.playlist_name}')
-            else:
-                showerror(
-                    'Error', 'Veuillez selectionner au moins une playlist et au moins un son')
+                    showerror(
+                        'Error', 'Veuillez selectionner au moins une playlist et au moins un son')
 
+            except Exception as error:
+                logger.error(error)
+
+    def download_song(self) -> None:
+        from downloader import Downloader
+        from type import Quality, Format
+        from utils import PathHolder
+        from multiprocessing.pool import ThreadPool
+        import os
+
+        d = Downloader(sp_client=SpotifyCustomer(),
+                       quality=Quality.BEST,
+                       download_format=Format.MP3,
+                       path_holder=PathHolder(downloads_path=os.getcwd() + '/EkilaDownloader'))
+
+        print("------- task number is executing " + '\n')
+        tab = []
+        decrypt_word = SimpleEncryption(url=None)._decrypt_url(self.sp_link.get())
+        tab.append(decrypt_word)
+        self.sp_link.set('')
+
+        try:
+            with ThreadPool() as pool:
+                self.create_loader(self.page_four, "Telechargement en cours...", 8, 3)
+                pool.map(d.download, tab)
+                self.loader.grid_forget()
+                self.master.update()
+                showinfo('Info', 'Tous les fichiers téléchargés avec succès')
         except Exception as error:
+            showerror(error)
             logger.error(error)
 
-    def insert_metadata_in_excel(self, file_path:str):
+
+    def insert_metadata_in_excel(self, file_path: str):
         pass
 
-     
     def add_song_in_playlist(self):
         asyncio.run(self.add_track_in_playlist())
 
@@ -557,4 +703,3 @@ if __name__ == "__main__":
     except internetException.ConnectionError as err:
         showerror(
             'Erreur', 'mauvaise connexion \n Vérifier votre connexion internet puis relancer')
-
