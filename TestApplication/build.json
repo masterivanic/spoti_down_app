@@ -1,0 +1,132 @@
+{
+    "version": "auto-py-to-exe-configuration_v1",
+    "pyinstallerOptions": [{
+            "optionDest": "noconfirm",
+            "value": true
+        },
+        {
+            "optionDest": "filenames",
+            "value": "D:/ekilaRadio_nouvelle_version/ekila/spotifyStream/main.py"
+        },
+        {
+            "optionDest": "onefile",
+            "value": true
+        },
+        {
+            "optionDest": "console",
+            "value": true
+        },
+        {
+            "optionDest": "icon_file",
+            "value": "D:/ekilaRadio_nouvelle_version/ekila/spotifyStream/images/logo.ico"
+        },
+        {
+            "optionDest": "name",
+            "value": "EkilaDownStation"
+        },
+        {
+            "optionDest": "upx_dir",
+            "value": "D:/ekilaRadio_nouvelle_version/ekila/spotifyStream/output"
+        },
+        {
+            "optionDest": "ascii",
+            "value": false
+        },
+        {
+            "optionDest": "clean_build",
+            "value": false
+        },
+        {
+            "optionDest": "strip",
+            "value": false
+        },
+        {
+            "optionDest": "noupx",
+            "value": false
+        },
+        {
+            "optionDest": "disable_windowed_traceback",
+            "value": false
+        },
+        {
+            "optionDest": "embed_manifest",
+            "value": true
+        },
+        {
+            "optionDest": "uac_admin",
+            "value": false
+        },
+        {
+            "optionDest": "uac_uiaccess",
+            "value": false
+        },
+        {
+            "optionDest": "win_private_assemblies",
+            "value": false
+        },
+        {
+            "optionDest": "win_no_prefer_redirects",
+            "value": false
+        },
+        {
+            "optionDest": "bootloader_ignore_signals",
+            "value": false
+        },
+        {
+            "optionDest": "argv_emulation",
+            "value": false
+        },
+        {
+            "optionDest": "datas",
+            "value": "D:/ekilaRadio_nouvelle_version/ekila/spotifyStream/downloader.py;."
+        },
+        {
+            "optionDest": "datas",
+            "value": "D:/ekilaRadio_nouvelle_version/ekila/spotifyStream/exceptions.py;."
+        },
+        {
+            "optionDest": "datas",
+            "value": "D:/ekilaRadio_nouvelle_version/ekila/spotifyStream/spotify.py;."
+        },
+        {
+            "optionDest": "datas",
+            "value": "D:/ekilaRadio_nouvelle_version/ekila/spotifyStream/tracks.py;."
+        },
+        {
+            "optionDest": "datas",
+            "value": "D:/ekilaRadio_nouvelle_version/ekila/spotifyStream/type.py;."
+        },
+        {
+            "optionDest": "datas",
+            "value": "D:/ekilaRadio_nouvelle_version/ekila/spotifyStream/utils.py;."
+        },
+        {
+            "optionDest": "datas",
+            "value": "D:/ekilaRadio_nouvelle_version/ekila/spotifyStream/window.py;."
+        },
+        {
+            "optionDest": "datas",
+            "value": "C:/Users/MasterGeek/AppData/Local/Programs/Python/Python37/tcl/tix8.4.3;tix8.4.3/"
+        },
+        {
+            "optionDest": "binaries",
+            "value": "D:/ekilaRadio_nouvelle_version/project/Scripts/youtube-dl.exe;."
+        },
+        {
+            "optionDest": "binaries",
+            "value": "D:/ekilaRadio_nouvelle_version/project/Scripts/tldextract.exe;."
+        },
+        {
+            "optionDest": "binaries",
+            "value": "D:/ekilaRadio_nouvelle_version/project/Scripts/eyeD3.exe;."
+        },
+        {
+            "optionDest": "binaries",
+            "value": "D:/ekilaRadio_nouvelle_version/project/Scripts/ffmpeg.exe;."
+        }
+    ],
+    "nonPyinstallerOptions": {
+        "increaseRecursionLimit": true,
+        "manualArguments": ""
+    }
+}

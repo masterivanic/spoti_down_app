@@ -8,7 +8,16 @@ import requests
 from type import Type
 from tracks import Track, TrackDto
 from type import Type
+from functools import lru_cache
 
+
+class BearerAuth(requests.auth.AuthBase):
+    def __init__(self, token):
+        self.token = token
+
+    def __call__(self, r):
+        r.headers["authorization"] = "Bearer " + self.token
+        return r
 
 
 class SpotifyUtils:
@@ -39,7 +48,13 @@ class SpotifyUtils:
 
 
 class SpotifyCustomer:
+    """
+      my spotify customer use
+      to fecth spotify data
 
+      complete those keys with yours or setup it 
+      on env vars
+    """
     SPOTIFY_CLIENT_ID = None
     SPOTIFY_CLIENT_SECRET_KEY = None
     USER_ID = None
@@ -71,6 +86,7 @@ class SpotifyCustomer:
         now = int(time.time())
         return self.client.auth_manager.cache_handler.get_cached_token()["expires_at"] - now < 60
 
+    # @lru_cache(maxsize=5)
     def get_user_plalists(self) -> list:
         try:
             if not self.is_token_expired():
@@ -141,11 +157,16 @@ class SpotifyCustomer:
 
     def search_song(self, query) -> tuple:
         song = self.client.search(query, limit=1, offset=0, type="track")
-        return (
-            song['tracks']['items'][0]['external_urls']['spotify'],
-            song['tracks']['items'][0]['artists'][0]['name'],
-            song['tracks']['items'][0]['name']
-        )
+        if song is not None:
+            try:
+                return (
+                    song['tracks']['items'][0]['external_urls']['spotify'],
+                    song['tracks']['items'][0]['artists'][0]['name'],
+                    song['tracks']['items'][0]['name']
+                )
+            except Exception:
+                pass
+        return None, None, None
 
     def search(self, query, query_type=Type.TRACK) -> list:
         results = self.client.search(q=query, limit=1, type=query_type)
@@ -223,7 +244,7 @@ class SpotifyCustomer:
                     break
         return is_uri
 
-    async def add_items_in_playlist(self, playlist_name: str, tracks: list) -> None:
+    def add_items_in_playlist(self, playlist_name: str, tracks: list) -> None:
         if not self.is_token_expired():
             track, is_exist = self.is_playlist_exist(playlist_name)
             if is_exist:
@@ -234,9 +255,12 @@ class SpotifyCustomer:
             user=self.client.current_user()['id'],
             playlist_id=playlist_id
         )
-      
+
 
 if __name__ == '__main__':
     pass
-
-   
+    # https://open.spotify.com/playlist/4NsW8vXmReVBLB6wjlB9yo?si=
+    # print(SpotifyCustomer().is_token_expired())
+    # print(SpotifyCustomer().get_user_plalists())
+    # print(SpotifyCustomer().get_user_plalists.cache_info())
+    # print(SpotifyCustomer()._get_playlist_tracks(playlist_id='1kr6NGO0dl0MCySVVaDOIU').cache_info())
