@@ -27,10 +27,6 @@ from utils import copy_csv_to_another
 __all__ = ["SpotifyCustomerException"]
 
 
-def print_text():
-    print('Opération terminée, vous avez téléchargé')
-
-
 class ApplicationInterface:
 
     """
@@ -184,9 +180,7 @@ class ApplicationInterface:
 
         self.playlist_panel()
         self.songs_panel([])
-        # print('--------------------------------------------')
-        # print(self.cl2.hlist.item_cget('CL2', 0, '-text'))
-
+    
         Button(self.btn_frame, text="Transférer", width=15, bg='green',
                command=self.add_song_in_playlist).grid(row=1, column=0)
         Button(self.btn_frame, text="Supprimer", width=15, bg='red',
