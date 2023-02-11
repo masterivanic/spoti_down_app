@@ -2,7 +2,7 @@
 
 from tkinter import *
 from tkinter import simpledialog
-from tkinter.filedialog import askopenfilename, askdirectory
+from tkinter.filedialog import askopenfilename, askdirectory, askopenfilenames
 from tkinter.filedialog import *
 from tkinter.messagebox import *
 from tkinter.scrolledtext import *
@@ -22,9 +22,13 @@ from pydub import AudioSegment
 from tkinter import tix
 import requests.exceptions as internetException
 from crypto import SimpleEncryption
-
+from utils import copy_csv_to_another
 
 __all__ = ["SpotifyCustomerException"]
+
+
+def print_text():
+    print('Opération terminée, vous avez téléchargé')
 
 
 class ApplicationInterface:
@@ -52,6 +56,7 @@ class ApplicationInterface:
         self.search_songs = []
         self.playlist_name = None
         self.uri = None
+        self.is_finish = False
         self.number_playlist = 0
         self.selected_songs = set()
         self.playlist_id = None
@@ -77,16 +82,22 @@ class ApplicationInterface:
             label='Ouvrir un fichier csv', command=self.open_file)
         menu_file.add_cascade(
             label='Ouvrir un fichier audio', command=self.open_file_mp3)
-        menu_file.add_cascade(label='Ouvrir un dossier contenant les sons',
-                              command=self.open_song_folder)
+        menu_file.add_cascade(
+            label='Ouvrir un dossier contenant les sons',
+            command=self.open_song_folder
+        )
         menu_file.add_separator()
         menu_file.add_cascade(
-            label='Créer une playlist ekila', command=self.create_playlists)
+            label='Créer une playlist ekila',
+            command=self.create_playlists
+        )
         menu_file.add_cascade(
-            label='Copier le lien de la playlist', command=self.get_selected_playlist_link)
+            label='Copier le lien de la playlist',
+            command=self.get_selected_playlist_link
+        )
         menu_file.add_cascade(label='Supprimer une playlist',
                               command=self.delete_playlist)
-        menu_file.add_separator()
+        # menu_file.add_separator()
         menu_file.add_cascade(label='Vider', command=self.clear_all)
         menu_file.add_separator()
         menu_file.add_cascade(label='Quitter', command=self.quit)
@@ -173,8 +184,8 @@ class ApplicationInterface:
 
         self.playlist_panel()
         self.songs_panel([])
-        print('--------------------------------------------')
-        print(self.cl2.hlist.item_cget('CL2', 0, '-text'))
+        # print('--------------------------------------------')
+        # print(self.cl2.hlist.item_cget('CL2', 0, '-text'))
 
         Button(self.btn_frame, text="Transférer", width=15, bg='green',
                command=self.add_song_in_playlist).grid(row=1, column=0)
@@ -308,30 +319,57 @@ class ApplicationInterface:
         self.file_path.set('')
         self.text.delete('1.0', END)
 
-    async def read_file(self):
-        song_title = []
+    def _read_unique_file(self, file_path):
+        song_title, count = [], 0
         self.search_songs = []
-        path = self.file_path.get()
-        i = 0
-        if path != '':
-            with open(path, mode='r', encoding="utf8", errors='ignore') as file:
-                csvreader = csv.reader(file)
-                for row in csvreader:
-                    new_row = row[0].split(";")
-                    if new_row[1] != 'Listen num':
-                        song_title.append(new_row[1])
-            for song in song_title:
-                sng = await self.read_sng(song)
-                self.text.insert(tkinter.INSERT, str(i) + '. ' + song + '\n')
-                i = i + 1
-                self.master.update()
+        with open(file_path, mode='r', encoding="utf8", errors='ignore') as file:
+            csvreader = csv.reader(file)
+            for row in csvreader:
+                new_row = row[0].split(";")
+                if new_row[1] != 'Listen num':
+                    song_title.append(new_row[1])
 
-            self.cl.pack_forget()
-            self.songs_panel(self.search_songs)
-            self.master.update()
-            showinfo(
-                'Success', f'Opération terminée, vous avez téléchargé {len(song_title)} éléments')
-            self.initialise_entry()
+        for song in song_title:
+            try:
+                response = self.read_sng(song)
+                if response is not None:
+                    self.text.insert(tkinter.INSERT, str(
+                        count) + '. ' + song + '\n')
+                    count += 1
+            except Exception as error:
+                print(error)
+
+        self.cl.pack_forget()
+        self.songs_panel(self.search_songs)
+        self.initialise_entry()
+        self.loader.grid_forget()
+        showinfo('Success', f'Opération terminée')
+
+    def make_copy_file(self, files: list):
+        dest_file = files[0]
+        for i in range(1, len(files)):
+            copy_csv_to_another(source_file=files[i], dest_file=dest_file)
+        return dest_file
+
+    def run_async_pool(self, files: list):
+        from multiprocessing.pool import ThreadPool
+
+        if len(files) == 1:
+            with ThreadPool() as pool:
+                _ = pool.apply_async(self._read_unique_file, (files[0],))
+                self.create_loader(
+                    self.page_one, 'Recherche en cours...', 8, 3)
+
+        if len(files) >= 2:
+            file = self.make_copy_file(files)
+            with ThreadPool() as pool:
+                _ = pool.apply_async(self._read_unique_file, (file,))
+                self.create_loader(
+                    self.page_one, 'Recherche en cours...', 8, 3)
+
+    async def read_file(self):
+        if len(self.files) > 0:
+            self.run_async_pool(self.files)
         else:
             showwarning('Attention', 'Veuillez choisir un fichier csv!')
 
@@ -345,12 +383,14 @@ class ApplicationInterface:
 
     def open_file(self):
         filetypes = (('csv files', '*.csv'), ('All files', '*.csv'))
-        self.file = askopenfilename(
+        self.file = askopenfilenames(
             title='ouvrir un fichier', filetypes=filetypes)
-        self.file_path.set(str(self.file))
+        self.files = [file for file in self.file]
+        file = " ; ".join(self.file)
+        self.file_path.set(str(file))
         if self.file_path.get() != '':
             self.entry.delete(0, END)
-        self.entry.insert(0, str(self.file))
+        self.entry.insert(0, str(file))
 
     def open_file_mp3(self):
         filetypes = (('mp3 files', '*.mp3'), ('All songs files', '*.mp3'))
@@ -410,12 +450,12 @@ class ApplicationInterface:
             self.cl2.autosetmode()
 
             songs = self.spotify_client._get_playlist_tracks(value['id'], True)
-            i: int = 0
+            count: int = 0
             for item in songs:
                 try:
-                    i += 1
+                    count += 1
                     self.cl2.hlist.add(
-                        'CL2.' + value['id'] + '.' + item.id, text=f"{i}. " + item.__str__())
+                        'CL2.' + value['id'] + '.' + item.id, text=f"{count}. " + item.__str__())
                     self.cl2.setstatus(
                         'CL2.' + value['id'] + '.' + item.id, "off")
                 except:
@@ -480,7 +520,6 @@ class ApplicationInterface:
             print(error)
             showerror('Error', error)
 
-    # ajout de la modification de la pochette
     async def set_song_metadata(self, path: str):
         if path:
             try:
@@ -495,18 +534,11 @@ class ApplicationInterface:
             except Exception as err:
                 logger.error(err)
 
-    async def read_sng(self, query: str):
+    def read_sng(self, query: str):
         spotify_link, artist_name, song_title = self.spotify_client.search_song(
             query)
         self.song_not_found: list = []
         if query is None or spotify_link is None:
-            self.song_not_found.append(query)
-            # code = SpotifyCustomerException.ErrorType
-            # raise SpotifyCustomerException(
-            #     code.NO_CONTENT,
-            #     "Aucune valeur trouvé",
-            #     reason='paramètre incorrect'
-            # )
             pass
         else:
             self.search_songs.append({
@@ -514,7 +546,6 @@ class ApplicationInterface:
                 'artist': artist_name,
                 'title': song_title
             })
-
         return spotify_link
 
     async def mp3_to_wav(self, file: str):
@@ -540,7 +571,15 @@ class ApplicationInterface:
     def create_loader(self, frame, text, row, column):
         self.loader = Label(frame, text=text, font='Helvetica 12 bold')
         self.loader.grid(row=row, column=column, pady=5)
-        self.master.update()
+
+    def gif_loader(self, frame, row, column):
+        try:
+            image = PhotoImage(file="images/load.gif", format="gif -index 2")
+            self.loader = Label(frame, image=image)
+            self.loader.grid(row=row, column=column, pady=5)
+            self.master.update()
+        except Exception as error:
+            print(error)
 
     async def convert_mp3_to_wav(self):
         path = self.song_path.get()
@@ -593,8 +632,8 @@ class ApplicationInterface:
             except Exception as error:
                 logger.error('Error', error)
 
-    async def check_song_exist_in_playlist(self, playlist_title: str, song_uri: str):
-        return self.spotify_client.is_song_exist(playlist_title, song_uri)
+    def check_song_exist_in_playlist(self, song_uri: str):
+        return self.spotify_client.is_song_exist(self.playlist_title, song_uri), song_uri
 
     def send_song_to_playlist(self, song_uri: str):
         tab_song = []
@@ -605,9 +644,26 @@ class ApplicationInterface:
                     playlist_name=self.playlist_title,
                     tracks=tab_song)
         except Exception as error:
-            logger.error(error)
+            showerror('error', error)
 
-    async def update_playlist_panel(self, uri: str):
+    def minify_link(self, list_links: list):
+        return ";".join(list_links)
+
+    def _send_song_to_playlist(self, uri: str):
+        tab_links = uri.split(";")
+        for link in tab_links:
+            self.send_song_to_playlist(link)
+        self.loader.grid_forget()
+        self.master.update()
+        playlist_uri = self.SPOTIFY_PLAYLIST_URI + self.playlist_id
+        encrypted_link = SimpleEncryption(url=playlist_uri)._encrypt_url()
+        self.copy_paste_text(encrypted_link)
+        self.initialise()
+        self.deselect_items()
+        showinfo(
+            'Info', f'sons ajoutés à la playlist {self.playlist_title} avec succès, lien de la playlist copié')
+
+    def update_playlist_panel(self, uri: str):
         song_id = self.seperate_url(uri)
         song_label = self.cl.hlist.item_cget(
             'CL1.' + song_id, 0, '-text').split('.')[1]
@@ -636,10 +692,12 @@ class ApplicationInterface:
 
             try:
                 if playlist_title is not None and len(list(self.selected_songs)) >= 1:
-                    for song_uri in self.selected_songs:
-                        exist = await self.check_song_exist_in_playlist(playlist_title, song_uri)
-                        if not exist:
-                            song_to_send.append(song_uri)
+                    with ThreadPool(cpu_count()) as pool:
+                        jobs = pool.map_async(
+                            self.check_song_exist_in_playlist, self.selected_songs)
+                        for job in jobs.get():
+                            if not job[0]:
+                                song_to_send.append(job[1])
 
                     if len(song_to_send) == 0:
                         showwarning(
@@ -649,21 +707,28 @@ class ApplicationInterface:
                             with ThreadPool(cpu_count()) as pool:
                                 self.create_loader(
                                     self.btn_frame, "Transfert en cours...", 2, 3)
-                                pool.map(self.send_song_to_playlist,
-                                         song_to_send, chunksize=20)
-                                for value in song_to_send:
-                                    await self.update_playlist_panel(value)
+                                if len(song_to_send) == 1:
+                                    pool.apply(
+                                        self.send_song_to_playlist, (song_to_send[0],))
+                                    self.loader.grid_forget()
+                                    self.master.update()
+                                    playlist_uri = self.SPOTIFY_PLAYLIST_URI + self.playlist_id
+                                    encrypted_link = SimpleEncryption(
+                                        url=playlist_uri)._encrypt_url()
+                                    self.copy_paste_text(encrypted_link)
+                                    showinfo(
+                                        'Info', f'sons ajoutés à la playlist {self.playlist_title} avec succès, lien de la playlist copié')
+                                    self.initialise()
+                                    self.deselect_items()
 
-                            playlist_uri = self.SPOTIFY_PLAYLIST_URI + self.playlist_id
-                            encrypted_link = SimpleEncryption(
-                                url=playlist_uri)._encrypt_url()
-                            self.copy_paste_text(encrypted_link)
-                            self.loader.grid_forget()
-                            self.master.update()
-                            showinfo(
-                                'Info', f'sons ajoutés à la playlist {playlist_title} avec succès, lien de la playlist copié')
-                            self.initialise()
-                            self.deselect_items()
+                                elif len(song_to_send) >= 1:
+                                    unify_link = self.minify_link(song_to_send)
+                                    pool.apply_async(
+                                        self._send_song_to_playlist, (unify_link,))
+
+                                for value in song_to_send:
+                                    self.update_playlist_panel(value)
+
                         except Exception as error:
                             showerror('Error', error)
                             self.deselect_items()
@@ -682,46 +747,49 @@ class ApplicationInterface:
                 logger.error(error)
 
     def download_song(self) -> None:
-        from downloader import Downloader
-        from type import Quality, Format
-        from utils import PathHolder
         from multiprocessing.pool import ThreadPool
-        import os
 
-        d = Downloader(sp_client=SpotifyCustomer(),
-                       quality=Quality.BEST,
-                       download_format=Format.MP3,
-                       path_holder=PathHolder(downloads_path=os.getcwd() + '/EkilaDownloader'))
-
-        tab = []
         decrypt_word = SimpleEncryption(
             url=None)._decrypt_url(self.sp_link.get())
-        tab.append(decrypt_word)
         self.sp_link.set('')
 
         try:
             with ThreadPool() as pool:
                 self.create_loader(
-                    self.page_four, "Telechargement en cours...", 8, 3)
-                pool.map(d.download, tab)
-                self.loader.grid_forget()
-                self.master.update()
-                showinfo('Info', 'Tous les fichiers téléchargés avec succès')
+                    self.page_four, "Téléchargement en cours...", 8, 3)
+                pool.apply_async(self.call_download_function, (decrypt_word,))
+                print()
         except Exception as error:
             showerror(error)
             logger.error(error)
+
+    def call_download_function(self, link_crypt):
+        from downloader import Downloader
+        from type import Quality, Format
+        from utils import PathHolder
+
+        downloader = Downloader(sp_client=SpotifyCustomer(),
+                                quality=Quality.BEST,
+                                download_format=Format.MP3,
+                                path_holder=PathHolder(downloads_path=os.getcwd() + '/EkilaDownloader'))
+        downloader.call_download(link_crypt)
+        self.loader.grid_forget()
+        self.master.update()
+        showinfo('Info', 'Tous les fichiers téléchargés avec succès')
 
     def insert_metadata_in_excel(self, file_path: str):
         pass
 
     def add_song_in_playlist(self):
-        asyncio.run(self.add_track_in_playlist())
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.add_track_in_playlist())
 
-    def run_song_convert(self):
+    async def run_song_convert(self):
         asyncio.run(self.convert_mp3_to_wav())
 
     def generate_link(self):
-        asyncio.run(self.read_file())
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.read_file())
 
     def modify_metadata(self):
         asyncio.run(self.set_many_songs_metadata())
