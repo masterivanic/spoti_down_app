@@ -85,7 +85,6 @@ class Downloader:
         return result
 
     def call_download(self, query):
-        print('in call download')
         self.download(query=query, query_type=Type.TRACK)
 
     def download(self, query, query_type=Type.TRACK) -> None:
@@ -101,7 +100,7 @@ class Downloader:
 
         print(f'Downloading {len(queue)} songs...')
         with ThreadPool(cpu_count()) as pool:
-            jobs = pool.map_async(self._download, queue, chunksize=10)
+            jobs = pool.map_async(self._download, queue, chunksize=20)
 
             failed_jobs = []
             for job in jobs.get():

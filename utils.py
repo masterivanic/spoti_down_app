@@ -53,8 +53,20 @@ def safe_path_string(string: str) -> str:
     return re.sub(r'\.+$', '', new_string.rstrip()).encode('utf8').decode('utf8')
 
 
+def copy_csv_to_another(source_file, dest_file):
+    import csv
+    with open(source_file, mode='r', encoding="utf8", errors='ignore') as file_src, open(dest_file, mode='a', encoding="utf8", errors='ignore', newline='') as file_dest:
+        csvreader = csv.reader(file_src)
+        csvwriter = csv.writer(file_dest)
+        for row in csvreader:
+            if 'Listen num' in row[0]:
+                pass
+            else:
+                csvwriter.writerow(row)
+
+
 class PathHolder:
-  
+
     def __init__(self, data_path: str = None, downloads_path: str = None):
         # Setup home/data path
         if data_path is None:
