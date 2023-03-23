@@ -2,116 +2,69 @@ import tkinter
 import tkinter.messagebox
 import customtkinter
 from tkinter import Menu
+import os
+from PIL import Image
+import tkinter as tk
 
-customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
-customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
+# Modes: "System" (standard), "Dark", "Light"
+customtkinter.set_appearance_mode("System")
+# Themes: "blue" (standard), "green", "dark-blue"
+customtkinter.set_default_color_theme("green")
 
 
 class App(customtkinter.CTk):
+    """ main application interface """
+
+    GLIPH_ICON_WIDTH = 20
+    GLIPH_ICON_HEIGHT = 30
+
+    image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "images")
+    icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "images/icon")
+    logo = customtkinter.CTkImage(Image.open(os.path.join(image_path, "logos1.png")), size=(250, 85))
+    logo_welcome = customtkinter.CTkImage(Image.open(os.path.join(image_path, "panel.jpg")), size=(850, 85))
+    pub_image = customtkinter.CTkImage(Image.open(os.path.join(image_path, "large_test_image.png")), size=(250, 100))
+
+    #button logo's
+    search_image = customtkinter.CTkImage(
+        Image.open(os.path.join(image_path, "icon/rechercher.png")), 
+        size=(GLIPH_ICON_WIDTH, GLIPH_ICON_HEIGHT)
+    )
+    transfert_image = customtkinter.CTkImage(
+        Image.open(os.path.join(image_path, "icon/transférer.png")),
+        size=(GLIPH_ICON_WIDTH, GLIPH_ICON_HEIGHT)
+    )
+    download_image = customtkinter.CTkImage(
+        Image.open(os.path.join(image_path, "icon/télécharger.png")),
+        size=(GLIPH_ICON_WIDTH, GLIPH_ICON_HEIGHT)
+    )
+    convert_image = customtkinter.CTkImage(
+        Image.open(os.path.join(image_path, "icon/convertir.png")),
+        size=(GLIPH_ICON_WIDTH, GLIPH_ICON_HEIGHT)
+    )
+    quit_image = customtkinter.CTkImage(
+        Image.open(os.path.join(image_path, "icon/quitter.png")),
+        size=(GLIPH_ICON_WIDTH, GLIPH_ICON_HEIGHT)
+    )
+    
     def __init__(self):
         super().__init__()
 
-        # configure window
-        self.title("CustomTkinter complex_example.py")
-        self.geometry(f"{1100}x{580}")
+        self.title("Ekila Downloader App")
+        self.geometry(f"{1100}x{620}")
+        self.resizable(1, 1)
+        self.grid_rowconfigure(6, weight=2)
+        self.columnconfigure(0, weight=0)
 
-       
-
-        # configure grid layout (4x4)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_columnconfigure((2, 3), weight=0)
-        self.grid_rowconfigure((0, 1, 2), weight=1)
-
-        # create sidebar frame with widgets
-        self._sidebar()
-        self._menu_bar()
-
-        # create main entry and button
-        self.entry = customtkinter.CTkEntry(self, placeholder_text="CTkEntry")
-        self.entry.grid(row=3, column=1, columnspan=2, padx=(20, 0), pady=(20, 20), sticky="nsew")
-
-        self.main_button_1 = customtkinter.CTkButton(master=self, fg_color="transparent", border_width=2, text_color=("gray10", "#DCE4EE"))
-        self.main_button_1.grid(row=3, column=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
-
-        # create textbox
-        self.textbox = customtkinter.CTkTextbox(self, width=250)
-        self.textbox.grid(row=0, column=1, padx=(20, 0), pady=(20, 0), sticky="nsew")
-
-        # create tabview
-        self._tab_view_aside()
-
-        # create radiobutton frame
-        self.radiobutton_frame = customtkinter.CTkFrame(self)
-        self.radiobutton_frame.grid(row=0, column=3, padx=(20, 20), pady=(20, 0), sticky="nsew")
-        self.radio_var = tkinter.IntVar(value=0)
-        self.label_radio_group = customtkinter.CTkLabel(master=self.radiobutton_frame, text="CTkRadioButton Group:")
-        self.label_radio_group.grid(row=0, column=2, columnspan=1, padx=10, pady=10, sticky="")
-        self.radio_button_1 = customtkinter.CTkRadioButton(master=self.radiobutton_frame, variable=self.radio_var, value=0)
-        self.radio_button_1.grid(row=1, column=2, pady=10, padx=20, sticky="n")
-        self.radio_button_2 = customtkinter.CTkRadioButton(master=self.radiobutton_frame, variable=self.radio_var, value=1)
-        self.radio_button_2.grid(row=2, column=2, pady=10, padx=20, sticky="n")
-        self.radio_button_3 = customtkinter.CTkRadioButton(master=self.radiobutton_frame, variable=self.radio_var, value=2)
-        self.radio_button_3.grid(row=3, column=2, pady=10, padx=20, sticky="n")
-
-        # create slider and progressbar frame
-        self.slider_progressbar_frame = customtkinter.CTkFrame(self, fg_color="transparent")
-        self.slider_progressbar_frame.grid(row=1, column=1, padx=(20, 0), pady=(20, 0), sticky="nsew")
-        self.slider_progressbar_frame.grid_columnconfigure(0, weight=1)
-        self.slider_progressbar_frame.grid_rowconfigure(4, weight=1)
-        self.seg_button_1 = customtkinter.CTkSegmentedButton(self.slider_progressbar_frame)
-        self.seg_button_1.grid(row=0, column=0, padx=(20, 10), pady=(10, 10), sticky="ew")
-        self.progressbar_1 = customtkinter.CTkProgressBar(self.slider_progressbar_frame)
-        self.progressbar_1.grid(row=1, column=0, padx=(20, 10), pady=(10, 10), sticky="ew")
-        self.progressbar_2 = customtkinter.CTkProgressBar(self.slider_progressbar_frame)
-        self.progressbar_2.grid(row=2, column=0, padx=(20, 10), pady=(10, 10), sticky="ew")
-        self.slider_1 = customtkinter.CTkSlider(self.slider_progressbar_frame, from_=0, to=1, number_of_steps=4)
-        self.slider_1.grid(row=3, column=0, padx=(20, 10), pady=(10, 10), sticky="ew")
-        self.slider_2 = customtkinter.CTkSlider(self.slider_progressbar_frame, orientation="vertical")
-        self.slider_2.grid(row=0, column=1, rowspan=5, padx=(10, 10), pady=(10, 10), sticky="ns")
-        self.progressbar_3 = customtkinter.CTkProgressBar(self.slider_progressbar_frame, orientation="vertical")
-        self.progressbar_3.grid(row=0, column=2, rowspan=5, padx=(10, 20), pady=(10, 10), sticky="ns")
-
-        # create scrollable frame
-        self.scrollable_frame = customtkinter.CTkScrollableFrame(self, label_text="CTkScrollableFrame")
-        self.scrollable_frame.grid(row=1, column=2, padx=(20, 0), pady=(20, 0), sticky="nsew")
-        self.scrollable_frame.grid_columnconfigure(0, weight=1)
-        self.scrollable_frame_switches = []
-        for i in range(100):
-            switch = customtkinter.CTkSwitch(master=self.scrollable_frame, text=f"CTkSwitch {i}")
-            switch.grid(row=i, column=0, padx=10, pady=(0, 20))
-            self.scrollable_frame_switches.append(switch)
-
-        # create checkbox and switch frame
-        self.checkbox_slider_frame = customtkinter.CTkFrame(self)
-        self.checkbox_slider_frame.grid(row=1, column=3, padx=(20, 20), pady=(20, 0), sticky="nsew")
-        self.checkbox_1 = customtkinter.CTkCheckBox(master=self.checkbox_slider_frame)
-        self.checkbox_1.grid(row=1, column=0, pady=(20, 0), padx=20, sticky="n")
-        self.checkbox_2 = customtkinter.CTkCheckBox(master=self.checkbox_slider_frame)
-        self.checkbox_2.grid(row=2, column=0, pady=(20, 0), padx=20, sticky="n")
-        self.checkbox_3 = customtkinter.CTkCheckBox(master=self.checkbox_slider_frame)
-        self.checkbox_3.grid(row=3, column=0, pady=20, padx=20, sticky="n")
-
-        # set default values
-        self.sidebar_button_3.configure(state="disabled", text="Disabled CTkButton")
-        self.checkbox_3.configure(state="disabled")
-        self.checkbox_1.select()
-        self.scrollable_frame_switches[0].select()
-        self.scrollable_frame_switches[4].select()
-        self.radio_button_3.configure(state="disabled")
-        self.appearance_mode_optionemenu.set("Dark")
-        self.scaling_optionemenu.set("100%")
-        self.optionmenu_1.set("CTkOptionmenu")
-        self.combobox_1.set("CTkComboBox")
-        self.slider_1.configure(command=self.progressbar_2.set)
-        self.slider_2.configure(command=self.progressbar_3.set)
-        self.progressbar_1.configure(mode="indeterminnate")
-        self.progressbar_1.start()
-        self.textbox.insert("0.0", "CTkTextbox\n\n" + "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.\n\n" * 20)
-        self.seg_button_1.configure(values=["CTkSegmentedButton", "Value 2", "Value 3"])
-        self.seg_button_1.set("Value 2")
+        self.menu_bar()
+        self.header()
+        self.sidebar()
+        self.extrat_csv_son_panel()
+        self.button_list()
+        self.footer()
 
     def open_input_dialog_event(self):
-        dialog = customtkinter.CTkInputDialog(text="Type in a number:", title="CTkInputDialog")
+        dialog = customtkinter.CTkInputDialog(
+            text="Type in a number:", title="CTkInputDialog")
         print("CTkInputDialog:", dialog.get_input())
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
@@ -123,52 +76,35 @@ class App(customtkinter.CTk):
 
     def sidebar_button_event(self):
         print("sidebar_button click")
-    
-    def _sidebar(self):
-        self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
-        self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(4, weight=1)
-        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="CustomTkinter", font=customtkinter.CTkFont(size=20, weight="bold"))
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
-        self.sidebar_button_1 = customtkinter.CTkButton(self.sidebar_frame, command=self.sidebar_button_event)
-        self.sidebar_button_1.grid(row=1, column=0, padx=20, pady=10)
-        self.sidebar_button_2 = customtkinter.CTkButton(self.sidebar_frame, command=self.sidebar_button_event)
-        self.sidebar_button_2.grid(row=2, column=0, padx=20, pady=10)
-        self.sidebar_button_3 = customtkinter.CTkButton(self.sidebar_frame, command=self.sidebar_button_event)
-        self.sidebar_button_3.grid(row=3, column=0, padx=20, pady=10)
-        self.appearance_mode_label = customtkinter.CTkLabel(self.sidebar_frame, text="Appearance Mode:", anchor="w")
-        self.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
-        self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["Light", "Dark", "System"],
-                                                                       command=self.change_appearance_mode_event)
+
+    def sidebar(self):
+        """ Setup side bar of the application """
+
+        self.sidebar_frame = customtkinter.CTkFrame(self, corner_radius=0,width=250)
+        self.sidebar_frame.grid(row=2, column=0, sticky="w")
+        self.tabview = customtkinter.CTkTabview(self.sidebar_frame,width=250)
+        self.tabview.grid(row=2, column=0)
+        self.tabview.add("Actualités")
+        self.tabview.add("Communiqués")
+
+        self.appearance_mode_label = customtkinter.CTkLabel(
+            self.sidebar_frame, 
+            text="Appearance Mode:", 
+            anchor="w"
+        )
+        self.appearance_mode_label.grid(row=6, column=0, padx=20, pady=(10, 0))
+        self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(
+            self.sidebar_frame, 
+            values=["Light", "Dark", "System"],
+            command=self.change_appearance_mode_event
+        )
         self.appearance_mode_optionemenu.grid(row=6, column=0, padx=20, pady=(10, 10))
-        self.scaling_label = customtkinter.CTkLabel(self.sidebar_frame, text="UI Scaling:", anchor="w")
-        self.scaling_label.grid(row=7, column=0, padx=20, pady=(10, 0))
-        self.scaling_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["80%", "90%", "100%", "110%", "120%"],
-                                                               command=self.change_scaling_event)
-        self.scaling_optionemenu.grid(row=8, column=0, padx=20, pady=(10, 20))
+        self.pub = customtkinter.CTkLabel(self.sidebar_frame, text="", width=250, image=self.pub_image)
+        self.pub.grid(row=7, column=0)
+ 
+    def menu_bar(self):
+        """ Setup menu bar of the application """
 
-    def _tab_view_aside(self):
-        self.tabview = customtkinter.CTkTabview(self, width=250)
-        self.tabview.grid(row=0, column=2, padx=(20, 0), pady=(20, 0), sticky="nsew")
-        self.tabview.add("CTkTabview")
-        self.tabview.add("Tab 2")
-        self.tabview.add("Tab 3")
-        self.tabview.tab("CTkTabview").grid_columnconfigure(0, weight=1)  # configure grid of individual tabs
-        self.tabview.tab("Tab 2").grid_columnconfigure(0, weight=1)
-
-        self.optionmenu_1 = customtkinter.CTkOptionMenu(self.tabview.tab("CTkTabview"), dynamic_resizing=False,
-                                                        values=["Value 1", "Value 2", "Value Long Long Long"])
-        self.optionmenu_1.grid(row=0, column=0, padx=20, pady=(20, 10))
-        self.combobox_1 = customtkinter.CTkComboBox(self.tabview.tab("CTkTabview"),
-                                                    values=["Value 1", "Value 2", "Value Long....."])
-        self.combobox_1.grid(row=1, column=0, padx=20, pady=(10, 10))
-        self.string_input_button = customtkinter.CTkButton(self.tabview.tab("CTkTabview"), text="Open CTkInputDialog",
-                                                           command=self.open_input_dialog_event)
-        self.string_input_button.grid(row=2, column=0, padx=20, pady=(10, 10))
-        self.label_tab_2 = customtkinter.CTkLabel(self.tabview.tab("Tab 2"), text="CTkLabel on Tab 2")
-        self.label_tab_2.grid(row=0, column=0, padx=20, pady=20)
-    
-    def _menu_bar(self):
         menu_bar = Menu(self)
         self.config(menu=menu_bar)
 
@@ -180,12 +116,11 @@ class App(customtkinter.CTk):
 
         menu_file.add_cascade(label='Ouvrir un fichier csv', command=None)
         menu_file.add_cascade(label='Ouvrir un fichier audio', command=None)
-        menu_file.add_cascade(label='Ouvrir un dossier contenant les sons',
-            command=None
-        )
+        menu_file.add_cascade(label='Ouvrir un dossier contenant les sons',command=None)
         menu_file.add_separator()
         menu_file.add_cascade(label='Créer une playlist ekila', command=None)
-        menu_file.add_cascade(label='Copier le lien de la playlist',command=None)
+        menu_file.add_cascade(
+            label='Copier le lien de la playlist', command=None)
         menu_file.add_cascade(label='Supprimer une playlist', command=None)
         menu_file.add_separator()
         menu_file.add_cascade(label='Vider', command=None)
@@ -193,27 +128,316 @@ class App(customtkinter.CTk):
         menu_file.add_cascade(label='Quitter', command=self.quit)
         menu_help.add_command(label='A propos', command=self.about)
 
+    def dashboard_title(self, frame):
+        """ Print title on all dashboard interface """
+
+        self.title_dash = customtkinter.CTkLabel(
+            frame, 
+            text="TABLEAU DE BORD",          
+            font=customtkinter.CTkFont(size=15, weight="bold")
+        )
+        self.title_dash.grid(row=0, column=1, padx=250)
+        
     def header(self):
-        pass
+        """ define the header of the application """
 
-    def dashboard(self):
-        pass
+        self.user_label = customtkinter.CTkLabel(master=self, text="Username")
+        self.user_label.grid(row=0, column=0, sticky="nw", padx=2)
+        self.date_label = customtkinter.CTkLabel(master=self, text="Mardi 0/1/2")
+        self.date_label.grid(row=0, column=1, ipadx=20, padx=50,  sticky="e")
 
-    def action_palette(self):
-        pass
+        self.logo_container = customtkinter.CTkFrame(self, corner_radius=0, width=1100)
+        self.logo_container.grid(row=1, column=0, columnspan=2)
+        self.logo_label = customtkinter.CTkLabel(self.logo_container, text="", image=self.logo, width=250)
+        self.logo_label.grid(row=0, column=0)
+        self.panel_logo_label = customtkinter.CTkLabel(self.logo_container, text="",  width=850, image=self.logo_welcome)
+        self.panel_logo_label.grid(row=0, column=1, padx=10)
+
+    def extrat_csv_son_panel(self):
+        """ main dashboard interface for read csv file """
+
+        self.dashboard_frame = customtkinter.CTkFrame(self, corner_radius=0, width=850)
+        self.dashboard_frame.grid(row=2, column=1, rowspan=4, columnspan=2, sticky="nsew")
+        self.dashboard_title(self.dashboard_frame)
+    
+        customtkinter.CTkLabel(self.dashboard_frame, text="Fichier csv:").grid(column=1, row=1, sticky='w', pady=15, padx=5)
+        self.csv_entry = customtkinter.CTkEntry(self.dashboard_frame, width=500)
+        self.csv_entry.grid(column=1, row=1, sticky='w', pady=15, padx=100)
+        self.textbox = customtkinter.CTkTextbox(self.dashboard_frame, width=800, height=250)
+        self.textbox.grid(row=2, column=1, pady=5, sticky="nw")
+        self.generate_button = customtkinter.CTkButton(
+            self.dashboard_frame, 
+            corner_radius=15, 
+            fg_color=("white", "#81f542"), 
+            border_width=2, 
+            text_color=("white", "#ffffff"), 
+            text="Generer"
+        )
+        self.generate_button.grid(row=3, column=1, pady=5, sticky="nw")
+        self.progressbar = customtkinter.CTkProgressBar(
+            self.dashboard_frame, 
+            height=30,
+            width=350,
+            progress_color=('orange','#FFA500')
+        )
+        self.progressbar.grid(row=3, column=1, padx=150, sticky="nw")
+
+    def transfert_son_panel(self):
+        """ dashboard interface for transfert sons in playlist """
+
+        self.transfert_frame = customtkinter.CTkFrame(self, corner_radius=0, width=850)
+        self.transfert_frame.grid(row=2, column=1, rowspan=4, columnspan=3, sticky="nsew")
+        self.dashboard_title(self.transfert_frame)
+
+        self.scrollable_sons_frame = customtkinter.CTkScrollableFrame(
+            self.transfert_frame,
+            label_text="Liste des sons",
+            height=250
+        ).grid(row=1, column=1, sticky=tk.E+tk.W, pady=15)
+
+        self.scrollable_sons_list = customtkinter.CTkScrollableFrame(
+            self.transfert_frame,
+            label_text="Liste de playlist",
+            height=250
+        ).grid(row=1,column=2, sticky=tk.E, pady=15)
+
+        self.button_frame = customtkinter.CTkFrame(self.transfert_frame, corner_radius=0)
+        self.button_frame.grid(row=2, column=1, sticky="w")
+        self.button_frame.columnconfigure(0, weight=1)
+        self.button_frame.columnconfigure(1, weight=1)
+        self.button_frame.columnconfigure(2, weight=1)
+
+        self.transfert_button = customtkinter.CTkButton(
+            self.button_frame, 
+            text="Transférer"
+        )
+        self.supprimer_button = customtkinter.CTkButton(
+            self.button_frame, 
+            text="Supprimer"
+        )
+        self.progressbar = customtkinter.CTkProgressBar(
+            self.button_frame, 
+            height=30, 
+            width=350, 
+            progress_color=('orange','#FFA500')
+        )
+
+        self.transfert_button.grid(row=0, column=0, sticky=tk.W+tk.E)
+        self.supprimer_button.grid(row=0, column=1, sticky=tk.W+tk.E, padx=3)
+        self.progressbar.grid(row=0, column=2, sticky=tk.W+tk.E, padx=3)
+
+    def download_son_panel(self):
+        """ dashboard interface for download song """
+
+        self.download_frame = customtkinter.CTkFrame(self, corner_radius=0, width=850)
+        self.download_frame.grid(row=2, column=1, rowspan=4, columnspan=3, sticky="nsew")
+        self.dashboard_title(self.download_frame)
+        customtkinter.CTkLabel(self.download_frame, text="Lien playlist:").grid(
+            column=1, 
+            row=1,  
+            sticky='w', 
+            pady=15,
+            padx=5
+        )
+        self.link_entry = customtkinter.CTkEntry(self.download_frame, width=500)
+        self.link_entry.grid(column=1, row=1,  sticky='nsew', pady=15, padx=100)
+        self.textbox = customtkinter.CTkTextbox(self.download_frame, width=800, height=250)
+        self.textbox.grid(row=2, column=1, pady=5,  sticky='nw')
+        self.download_sons_button = customtkinter.CTkButton(
+            self.download_frame, 
+            corner_radius=15,
+            fg_color=("white", "#81f542"),
+            border_width=2, 
+            text_color=("white", "#ffffff"), 
+            text="Télécharger"
+        ).grid(row=3, column=1, pady=5,  sticky='nw')
+
+        self.progressbar = customtkinter.CTkProgressBar(
+            self.download_frame, 
+            height=30, 
+            width=350, 
+            progress_color=('orange','#FFA500')
+        ).grid(row=3, column=1, padx=150,  sticky='nw')
+
+    def conversion_son_panel(self):
+        """ dashboard interface for convert song in wav """
+
+        self.conversion_frame = customtkinter.CTkFrame(self, corner_radius=0, width=850)
+        self.conversion_frame.grid(row=2, column=1, rowspan=4, columnspan=3, sticky="nsew")
+        self.dashboard_title(self.conversion_frame)
+        customtkinter.CTkLabel(self.conversion_frame, text="sons mp3:").grid(
+            column=1, 
+            row=1,  
+            sticky='w', 
+            pady=15,
+            padx=5
+        )
+        self.son_path_entry = customtkinter.CTkEntry(self.conversion_frame, width=500)
+        self.son_path_entry.grid(column=1, row=1,  sticky='nsew', pady=15, padx=100)
+        self.textbox = customtkinter.CTkTextbox(self.conversion_frame, width=800, height=250)
+        self.textbox.grid(row=2, column=1, pady=5,  sticky='nw')
+        self.menu_button = customtkinter.CTkFrame(self.conversion_frame, corner_radius=0)
+        self.menu_button.grid(row=3, column=1, pady=5,  sticky='nw')
+
+        self.menu_button.columnconfigure(0, weight=1)
+        self.menu_button.columnconfigure(1, weight=1)
+        self.menu_button.columnconfigure(2, weight=1)
+
+        self.metadata_button = customtkinter.CTkButton(
+            self.menu_button, 
+            corner_radius=15,
+            fg_color=("white", "#81f542"),
+            border_width=2, 
+            text_color=("white", "#ffffff"), 
+            text="Metadata"
+        )
+
+        self.convert_sons_button = customtkinter.CTkButton(
+            self.menu_button, 
+            corner_radius=15,
+            fg_color=("white", "#81f542"),
+            border_width=2, 
+            text_color=("white", "#ffffff"), 
+            text="Convertir en wav"
+        )
+
+        self.progressbar = customtkinter.CTkProgressBar(
+            self.menu_button, 
+            height=30, 
+            width=350, 
+            progress_color=('orange','#FFA500')
+        )
+
+        self.metadata_button.grid(row=0, column=0, sticky=tk.W+tk.E, padx=10)
+        self.convert_sons_button.grid(row=0, column=1, sticky=tk.W+tk.E, padx=10)
+        self.progressbar.grid(row=0, column=2, sticky=tk.W+tk.E)
+
+    def button_list(self):
+        """ all pagination button for application """
+
+        self.button_frame = customtkinter.CTkFrame(self, corner_radius=0)
+        self.button_frame.grid(row=6, column=1, sticky="w")
+        self.search_button = customtkinter.CTkButton(
+            self.button_frame, 
+            corner_radius=10, 
+            text_color=("black", "#000000"), 
+            text="Recherche fichier",
+            image=self.search_image, 
+            height=60,
+            font=customtkinter.CTkFont(size=12, weight="bold"),
+            command=lambda:self.paginate('Recherche fichier')
+        )
+
+        self.transfert_button = customtkinter.CTkButton(
+            self.button_frame,
+            corner_radius=10, 
+            text_color=("black", "#000000"), 
+            text="Transfert sons", 
+            image=self.transfert_image, 
+            height=60,
+            font=customtkinter.CTkFont(size=12, weight="bold"),
+            command=lambda:self.paginate('Transfert sons')
+        )
+
+        self.download_button = customtkinter.CTkButton(
+            self.button_frame,
+            corner_radius=10, 
+            text_color=("black", "#000000"), 
+            text="Télécharger sons", 
+            image=self.download_image, 
+            height=60,
+            font=customtkinter.CTkFont(size=12, weight="bold"),
+            command=lambda:self.paginate('Télécharger sons')
+        )
+
+        self.convert_button = customtkinter.CTkButton(
+            self.button_frame,
+            corner_radius=10, 
+            text_color=("black", "#000000"), 
+            text="Conversion sons", 
+            image=self.convert_image, 
+            height=60,
+            font=customtkinter.CTkFont(size=12, weight="bold"),
+            command=lambda:self.paginate('Conversion sons')
+        )
+
+        self.quit_button = customtkinter.CTkButton(
+            self.button_frame, 
+            corner_radius=10,
+            text_color=("black", "#000000"), 
+            text="Quitter", 
+            image=self.quit_image,  
+            height=60,
+            font=customtkinter.CTkFont(size=12, weight="bold"),
+            command=self.quit
+        )
+
+        self.button_frame.columnconfigure(0, weight=1)
+        self.button_frame.columnconfigure(1, weight=1)
+        self.button_frame.columnconfigure(2, weight=1)
+        self.button_frame.columnconfigure(3, weight=1)
+        self.button_frame.columnconfigure(4, weight=1)
+    
+        self.search_button.grid(row=0, column=0, sticky=tk.W+tk.E)
+        self.transfert_button.grid(row=0, column=1, sticky=tk.W+tk.E, padx=3)
+        self.download_button.grid(row=0, column=2, sticky=tk.W+tk.E, padx=3)
+        self.convert_button.grid(row=0, column=3, sticky=tk.W+tk.E, padx=3)
+        self.quit_button.grid(row=0, column=4, sticky=tk.W+tk.E)
+
+    def paginate(self, text):
+        if text == 'Transfert sons':
+            self.transfert_son_panel()
+        elif text == 'Télécharger sons':
+            self.download_son_panel()
+        elif text == 'Conversion sons':
+            self.conversion_son_panel()
+        elif text == 'Recherche fichier':
+            self.extrat_csv_son_panel()
+
+    def aside_element(self):
+        """ Aside element for notification  """
+
+        self.aside_frame = customtkinter.CTkFrame(self, corner_radius=0)
+        self.aside_frame.grid(row=2, column=0, rowspan=4, padx=3)
+
+        self.tabview = customtkinter.CTkTabview(self.aside_frame, width=250)
+        self.tabview.grid(row=0, column=0, sticky='nw')
+        self.tabview.add("Actualités")
+        self.tabview.add("Communiqués")
+        self.pub = customtkinter.CTkLabel(
+            self.aside_frame, 
+            text="", 
+            image=self.pub_image
+        )
+        self.pub.grid(row=1, column=0, sticky='nw')
 
     def footer(self):
-        pass
+        """ application footer """
+
+        self.footer_frame = customtkinter.CTkFrame(self)
+        self.footer_frame.grid(row=9, column=1, sticky="nsew")
+        self.footer_label = customtkinter.CTkLabel(
+            self.footer_frame, text="Copyright MNLV Tous droits réservés",
+            font=customtkinter.CTkFont(size=8, weight="bold")
+        )
+        self.footer_label.grid(row=0, column=1, columnspan=2, sticky='e', padx=300)
 
     def quit(self):
+        """ to exit from application """
+
         from tkinter.messagebox import askyesno
         entry = askyesno(title='Exit', message='Etes vous sur de vouloir quitter?')
         if entry: self.destroy()
 
     def about(self):
+        """ about application """
+
         from tkinter.messagebox import showinfo
-        showinfo(title='A propos',
-                 message='Ekila Downloader v0.1, copyright MNLV Africa \n Droits réservés')
+        showinfo(
+            title='A propos',
+            message='Ekila Downloader v0.1, copyright MNLV Africa \n Droits réservés'
+        )
+
 
 if __name__ == "__main__":
     app = App()
