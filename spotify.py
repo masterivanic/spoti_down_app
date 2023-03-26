@@ -1,23 +1,16 @@
 
 import time
 import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials, SpotifyOAuth
-import requests
+
+from spotipy.oauth2 import SpotifyClientCredentials
+from spotipy.oauth2 import SpotifyOAuth
 from spotipy.cache_handler import MemoryCacheHandler
-import requests
 from type import Type
-from tracks import Track, TrackDto
+from tracks import Track
+from tracks import TrackDto
 from type import Type
-from functools import lru_cache
-
-
-class BearerAuth(requests.auth.AuthBase):
-    def __init__(self, token):
-        self.token = token
-
-    def __call__(self, r):
-        r.headers["authorization"] = "Bearer " + self.token
-        return r
+from settings import settings
+from enum import Enum
 
 
 class SpotifyUtils:
@@ -46,6 +39,16 @@ class SpotifyUtils:
                         tracks.append(Track(track_data))
         return tracks
 
+class APIConfig(Enum):
+    """ Api configuration """
+
+    SPOTIPY_REDIRECT_URI : str
+    SPOTIFY_CLIENT_ID : str
+    SPOTIFY_CLIENT_SECRET_KEY : str
+    USER_ID : str
+    scopes:str
+
+        
 
 class SpotifyCustomer:
     """
@@ -55,18 +58,13 @@ class SpotifyCustomer:
       complete those keys with yours or setup it 
       on env vars
     """
-    SPOTIFY_CLIENT_ID = None
-    SPOTIFY_CLIENT_SECRET_KEY = None
-    USER_ID = None
-    SPOTIPY_REDIRECT_URI = 'https://localhost:8080/'
-    scopes = 'playlist-modify-public, playlist-modify-private, user-top-read, user-read-recently-played'
-
-    def __init__(self) -> None:
+  
+    def __init__(self, config:APIConfig) -> None:
         self.auth_manager = SpotifyOAuth(
-            client_id=self.SPOTIFY_CLIENT_ID,
-            client_secret=self.SPOTIFY_CLIENT_SECRET_KEY,
-            redirect_uri=self.SPOTIPY_REDIRECT_URI,
-            scope=self.scopes,
+            client_id=config.SPOTIFY_CLIENT_ID,
+            client_secret=config.SPOTIFY_CLIENT_SECRET_KEY,
+            redirect_uri=config.SPOTIPY_REDIRECT_URI,
+            scope=config.scopes,
             cache_handler=None
         )
         self.sp_utils = SpotifyUtils()
@@ -143,7 +141,7 @@ class SpotifyCustomer:
             current_user = self.client.current_user()
             return current_user
         except Exception as err:
-            print(err)
+           raise err
 
     def get_user(self) -> any:
         user = self.client.user(self.USER_ID)
@@ -258,9 +256,19 @@ class SpotifyCustomer:
 
 
 if __name__ == '__main__':
-    pass
+    conf = APIConfig
+    conf.SPOTIFY_CLIENT_ID = settings.SPOTIFY_CLIENT_ID
+    conf.USER_ID = settings.USER_ID
+    conf.SPOTIPY_REDIRECT_URI = settings.SPOTIPY_REDIRECT_URI
+    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.SPOTIFY_CLIENT_SECRET_KEY
+    conf.scopes = settings.scopes
+
+    # conf.set_user_id(settings.USER_ID)
+    # conf.set_redirect_uri(settings.SPOTIPY_REDIRECT_URI)
+    # conf.set_spotify_client_secret(settings.SPOTIFY_CLIENT_SECRET_KEY)
+    # conf.set_scope(settings.scopes)
     # https://open.spotify.com/playlist/4NsW8vXmReVBLB6wjlB9yo?si=
     # print(SpotifyCustomer().is_token_expired())
-    # print(SpotifyCustomer().get_user_plalists())
+    print(SpotifyCustomer(config=conf).get_current_user())
     # print(SpotifyCustomer().get_user_plalists.cache_info())
     # print(SpotifyCustomer()._get_playlist_tracks(playlist_id='1kr6NGO0dl0MCySVVaDOIU').cache_info())

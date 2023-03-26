@@ -1,6 +1,12 @@
 
 import enum
 
+"""
+    Here we describe our prsonnal
+ exception to raise eventual error
+
+"""
+
 class SpotifyCustomerException(Exception):
 
     def __init__(self, code, msg, reason=None):
@@ -48,3 +54,21 @@ class InternetConnectionError(Exception):
 
     def __str__(self):
         return self.message
+
+class SongError(Exception):
+    def __init__(self, message='Song not found!'):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self.message
+
+
+class ComponentError(Exception):
+    def __init__(self, message='Component does not exist'):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self.message
+
