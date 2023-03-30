@@ -8,6 +8,7 @@ from shutil import which
 from os import environ
 import re
 import os
+import customtkinter
 __all__ = ['PathHolder']
 
 
@@ -55,7 +56,8 @@ def safe_path_string(string: str) -> str:
 
 def copy_csv_to_another(source_file, dest_file):
     import csv
-    with open(source_file, mode='r', encoding="utf8", errors='ignore') as file_src, open(dest_file, mode='a', encoding="utf8", errors='ignore', newline='') as file_dest:
+    with open(source_file, mode='r', encoding="utf8", errors='ignore') as file_src, \
+        open(dest_file, mode='a', encoding="utf8", errors='ignore', newline='') as file_dest:
         csvreader = csv.reader(file_src)
         csvwriter = csv.writer(file_dest)
         for row in csvreader:
@@ -63,7 +65,6 @@ def copy_csv_to_another(source_file, dest_file):
                 pass
             else:
                 csvwriter.writerow(row)
-
 
 class PathHolder:
 
@@ -109,3 +110,37 @@ class PathHolder:
 
         urlretrieve(url, str(file_path))
         return file_path
+
+"""
+ERROR: Unable to extract uploader id; please report this issue on https://yt-dl.org/bug . 
+Make sure you are using the latest version; type  youtube-dl -U  to update. 
+Be sure to call youtube-dl with the --verbose flag and include its complete output.
+
+"""
+
+class Utils:
+
+    @staticmethod
+    def seperate_url(url: str):
+        result = url.split('/')
+        return result[len(result)-1]
+        
+    def make_copy_file(files: list):
+        dest_file = files[0]
+        for i in range(1, len(files)):
+            copy_csv_to_another(source_file=files[i], dest_file=dest_file)
+        return dest_file
+
+    @staticmethod
+    def is_mp3(file: str):
+        return file.endswith('.mp3')
+
+    @staticmethod
+    async def deselect_checkbox(checkbox:customtkinter.CTkCheckBox):
+        """ select one checkbox of list of songs """
+        checkbox.deselect()
+    
+    @staticmethod
+    async def select_checkbox(checkbox:customtkinter.CTkCheckBox):
+        """ deselect one checkbox of list of songs """
+        checkbox.select()
