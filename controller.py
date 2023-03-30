@@ -5,13 +5,14 @@ from tkinter.filedialog import askopenfilenames
 from spotify import SpotifyCustomer
 from tkinter.messagebox import showwarning
 from tkinter.messagebox import showinfo
-from utils import copy_csv_to_another
 from exceptions import SongError
 from exceptions import ComponentError
+from utils import Utils
 
 import csv
 import tkinter
 import customtkinter
+import asyncio
 
 
 class Controller:
@@ -19,8 +20,16 @@ class Controller:
     def __init__(self, view, sp_client:SpotifyCustomer) -> None:
         self.view = view
         self.sp_client = sp_client
+        self.state = {
+            'search_songs': []
+        }
         self.search_songs = []
-       
+    
+    def create_playlist(self):
+        """ permit a user to create a playlist"""
+
+        pass
+
     def open_file(self):
         """ get csv file path """
 
@@ -31,9 +40,7 @@ class Controller:
         )
         return file_path
         
-    def is_mp3(self, file: str):
-        return file.endswith('.mp3')
-
+    
     def open_file_mp3(self):
         """ get mp3 file path """
 
@@ -102,25 +109,92 @@ class Controller:
         except:
             raise ComponentError
 
-    def song_panel(self, song_list=None):
+
+    async def song_panel(self):
         """ print all song extract from csv in transfert song panel """
 
         try:
-            row = 2
-            pad = 85    
-            for _ in range(0, 10):
-                customtkinter.CTkCheckBox(self.view.scrollable_sons_frame, text="son1").grid(row=row, column=1, sticky='nw', pady=pad, padx=25)
-                row +=1 
-                pad += 10
-                #print(self.checkbox_1)
-        except:
-            raise ComponentError
-    
-     
-    def make_copy_file(self, files: list):
-        dest_file = files[0]
-        for i in range(1, len(files)):
-            copy_csv_to_another(source_file=files[i], dest_file=dest_file)
-        return dest_file
+            self.check_var = tkinter.StringVar()
+            self.header = customtkinter.CTkCheckBox(
+                self.view.scrollable_sons_frame, 
+                text="Headers",
+                variable=self.check_var,
+                command=self.select_checkboxes,
+                onvalue="on", 
+                offvalue="off"
+            )
+            self.header.grid(row=0, column=0, pady=(0, 10), sticky='nw')
+
+            self.scrollable_frame_switches = []
+            self.checkbox_value = tkinter.StringVar()
+
+            for i, songs in enumerate(self.search_songs):
+                await self.checkbox_song_output(songs, i)
+                print('execute this action.')
+                self.view.update()
         
-            
+        except Exception as err:
+            print(err)
+
+    async def checkbox_song_output(self, songs, index):
+        try:
+            checkbox = customtkinter.CTkCheckBox(
+                self.view.scrollable_sons_frame, 
+                text=songs['artist'] + '- ' + songs['title'],
+                variable=self.checkbox_value,
+                onvalue=songs['song_link'],
+                offvalue='off', 
+            )
+            checkbox.grid(row=index+1, column=0, pady=(0, 10), sticky='nw', padx=30)
+            self.scrollable_frame_switches.append(checkbox)
+        except Exception as error:
+            raise error
+
+    async def select_and_deselect(self):
+        self.current_header_state = self.check_var.get()
+        if self.current_header_state == "on":
+            for checkbox in self.scrollable_frame_switches:
+                await Utils.select_checkbox()
+                self.view.update()
+        elif self.current_header_state == "off":
+            for checkbox in self.scrollable_frame_switches:
+                await Utils.deselect_checkbox(checkbox)
+                self.view.update()
+    
+    def select_checkboxes(self):
+        asyncio.run(self.select_and_deselect())
+
+    def checkbox_playlist_output(self):
+        """ print all user's playlist in transfert song panel """
+
+        all_playlist = self.sp_client.get_user_plalists() # store this in cache
+        self.playlist_var = tkinter.StringVar()
+        self.scrollable_playlist_switches = []
+        for i, playlist in enumerate(all_playlist):
+            checkbox =  customtkinter.CTkCheckBox(
+                self.view.scrollable_sons_list, 
+                text=playlist['name'],
+                onvalue=playlist['id'],
+                offvalue='off',
+                variable=self.playlist_var,
+                command=self.selected_playlist
+            )
+            checkbox.grid(row=i, column=0, pady=(0, 10), sticky='nw', padx=30)
+            self.scrollable_playlist_switches.append(checkbox)
+
+
+    def selected_playlist(self):
+        print("selectd playlist:: ", self.playlist_var.get())
+        
+
+ 
+
+    
+
+    
+
+
+
+        
+    
+ 

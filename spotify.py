@@ -69,8 +69,8 @@ class SpotifyCustomer:
         )
         self.sp_utils = SpotifyUtils()
 
-        #self.auth_manager = SpotifyClientCredentials(client_id=self.SPOTIFY_CLIENT_ID,client_secret=self.SPOTIFY_CLIENT_SECRET_KEY, cache_handler=None)
         token_info = self.auth_manager.get_access_token()
+        self.user_id = config.USER_ID
 
         if isinstance(token_info, dict):
             self.auth_manager.cache_handler = MemoryCacheHandler(
@@ -82,14 +82,14 @@ class SpotifyCustomer:
 
     def is_token_expired(self) -> bool:
         now = int(time.time())
-        return self.client.auth_manager.cache_handler.get_cached_token()["expires_at"] - now < 60
+        return self.client.auth_manager.cache_handler.get_cached_token()['expires_at'] - now < 60
 
     # @lru_cache(maxsize=5)
     def get_user_plalists(self) -> list:
         try:
             if not self.is_token_expired():
                 user_playlist = []
-                playlists = self.client.user_playlists(self.USER_ID)
+                playlists = self.client.user_playlists(self.user_id)
                 while playlists:
                     for i, playlist in enumerate(playlists['items']):
                         user_playlist.append({
@@ -144,7 +144,7 @@ class SpotifyCustomer:
            raise err
 
     def get_user(self) -> any:
-        user = self.client.user(self.USER_ID)
+        user = self.client.user(self.user_id)
         if user is not None:
             return user
 
@@ -215,7 +215,7 @@ class SpotifyCustomer:
 
         if not is_created:
             self.client.user_playlist_create(
-                self.USER_ID,
+                self.user_id,
                 playlist_name,
                 public=True
             )
@@ -270,5 +270,8 @@ if __name__ == '__main__':
     # https://open.spotify.com/playlist/4NsW8vXmReVBLB6wjlB9yo?si=
     # print(SpotifyCustomer().is_token_expired())
     print(SpotifyCustomer(config=conf).get_current_user())
+    # print(SpotifyCustomer().is_token_expired())
+    print(SpotifyCustomer(config=conf).get_user())
+    print(SpotifyCustomer(config=conf).get_user_plalists())
     # print(SpotifyCustomer().get_user_plalists.cache_info())
     # print(SpotifyCustomer()._get_playlist_tracks(playlist_id='1kr6NGO0dl0MCySVVaDOIU').cache_info())

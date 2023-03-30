@@ -1,15 +1,32 @@
+
+from tkinter import Menu
+from PIL import Image
+from controller import Controller
+from spotify import SpotifyCustomer
+from spotify import APIConfig
+from settings import settings
+
+import tkinter as tk
+import os
 import tkinter
 import tkinter.messagebox
 import customtkinter
-from tkinter import Menu
-import os
-from PIL import Image
-import tkinter as tk
+import asyncio
+
 
 # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_appearance_mode("System")
 # Themes: "blue" (standard), "green", "dark-blue"
 customtkinter.set_default_color_theme("green")
+
+def get_api_configuration():
+    conf = APIConfig
+    conf.SPOTIFY_CLIENT_ID = settings.SPOTIFY_CLIENT_ID
+    conf.USER_ID = settings.USER_ID
+    conf.SPOTIPY_REDIRECT_URI = settings.SPOTIPY_REDIRECT_URI
+    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.SPOTIFY_CLIENT_SECRET_KEY
+    conf.scopes = settings.scopes
+    return conf
 
 
 class App(customtkinter.CTk):
@@ -45,12 +62,14 @@ class App(customtkinter.CTk):
         Image.open(os.path.join(image_path, "icon/quitter.png")),
         size=(GLIPH_ICON_WIDTH, GLIPH_ICON_HEIGHT)
     )
+
+    conf = get_api_configuration()
     
     def __init__(self):
         super().__init__()
 
         self.title("Ekila Downloader App")
-        self.geometry(f"{1100}x{620}")
+        self.geometry(f"{1129}x{620}")
         self.resizable(1, 1)
         self.grid_rowconfigure(6, weight=2)
         self.columnconfigure(0, weight=0)
@@ -61,6 +80,8 @@ class App(customtkinter.CTk):
         self.extrat_csv_son_panel()
         self.button_list()
         self.footer()
+        sp_client = SpotifyCustomer(config=self.conf)
+        self.controller = Controller(view=self, sp_client=sp_client)
 
     def open_input_dialog_event(self):
         dialog = customtkinter.CTkInputDialog(
@@ -76,6 +97,15 @@ class App(customtkinter.CTk):
 
     def sidebar_button_event(self):
         print("sidebar_button click")
+
+    def get_path_file(self):
+        """ get file path and insert in entry """
+
+        path = self.controller.open_file()
+        if self.csv_entry:
+            if self.csv_entry.get() != '': self.csv_entry.delete(0, tkinter.END)
+            self.csv_entry.insert(0, str(path))
+            
 
     def sidebar(self):
         """ Setup side bar of the application """
@@ -114,7 +144,7 @@ class App(customtkinter.CTk):
         menu_bar.add_cascade(label='Fichier', menu=menu_file)
         menu_bar.add_cascade(label='Aide', menu=menu_help)
 
-        menu_file.add_cascade(label='Ouvrir un fichier csv', command=None)
+        menu_file.add_cascade(label='Ouvrir un fichier csv', command=self.get_path_file)
         menu_file.add_cascade(label='Ouvrir un fichier audio', command=None)
         menu_file.add_cascade(label='Ouvrir un dossier contenant les sons',command=None)
         menu_file.add_separator()
@@ -159,19 +189,21 @@ class App(customtkinter.CTk):
         self.dashboard_frame = customtkinter.CTkFrame(self, corner_radius=0, width=850)
         self.dashboard_frame.grid(row=2, column=1, rowspan=4, columnspan=2, sticky="nsew")
         self.dashboard_title(self.dashboard_frame)
-    
+
+        self.file_path = tkinter.StringVar()
         customtkinter.CTkLabel(self.dashboard_frame, text="Fichier csv:").grid(column=1, row=1, sticky='w', pady=15, padx=5)
-        self.csv_entry = customtkinter.CTkEntry(self.dashboard_frame, width=500)
+        self.csv_entry = customtkinter.CTkEntry(self.dashboard_frame, width=500, textvariable=self.file_path)
         self.csv_entry.grid(column=1, row=1, sticky='w', pady=15, padx=100)
-        self.textbox = customtkinter.CTkTextbox(self.dashboard_frame, width=800, height=250)
-        self.textbox.grid(row=2, column=1, pady=5, sticky="nw")
+        self.textbox_csv = customtkinter.CTkTextbox(self.dashboard_frame, width=800, height=250)
+        self.textbox_csv.grid(row=2, column=1, pady=5, sticky="nw")
         self.generate_button = customtkinter.CTkButton(
             self.dashboard_frame, 
             corner_radius=15, 
             fg_color=("white", "#81f542"), 
             border_width=2, 
             text_color=("white", "#ffffff"), 
-            text="Generer"
+            text="Generer",
+            command = lambda: self.generate_song(self.file_path.get())
         )
         self.generate_button.grid(row=3, column=1, pady=5, sticky="nw")
         self.progressbar = customtkinter.CTkProgressBar(
@@ -181,25 +213,38 @@ class App(customtkinter.CTk):
             progress_color=('orange','#FFA500')
         )
         self.progressbar.grid(row=3, column=1, padx=150, sticky="nw")
+        self.progressbar.set(0)
+        # self.percentage = customtkinter.CTkLabel(self.dashboard_frame, text="1%", justify='center',
+        # fg_color='transparent').grid(row=3, column=1,padx=250 , sticky='w')
 
+    def generate_song(self, path:str):
+        asyncio.run(self.controller.read_unique_file(path))
+        
+    
     def transfert_son_panel(self):
         """ dashboard interface for transfert sons in playlist """
 
         self.transfert_frame = customtkinter.CTkFrame(self, corner_radius=0, width=850)
         self.transfert_frame.grid(row=2, column=1, rowspan=4, columnspan=3, sticky="nsew")
+        self.transfert_frame.columnconfigure(0, weight=1)
+        self.transfert_frame.columnconfigure(1, weight=1)
         self.dashboard_title(self.transfert_frame)
-
+     
         self.scrollable_sons_frame = customtkinter.CTkScrollableFrame(
             self.transfert_frame,
             label_text="Liste des sons",
-            height=250
-        ).grid(row=1, column=1, sticky=tk.E+tk.W, pady=15)
+            height=250,
+        )
+        self.scrollable_sons_frame.grid(row=1, column=1, sticky=tk.W+tk.E, pady=15)
+        self.scrollable_sons_frame.grid_columnconfigure(0, weight=1)
 
         self.scrollable_sons_list = customtkinter.CTkScrollableFrame(
             self.transfert_frame,
             label_text="Liste de playlist",
-            height=250
-        ).grid(row=1,column=2, sticky=tk.E, pady=15)
+            height=250,
+        )
+        self.scrollable_sons_list.grid(row=1,column=2, pady=15, sticky=tk.W+tk.E)
+        self.scrollable_sons_list.grid_columnconfigure(0, weight=1)
 
         self.button_frame = customtkinter.CTkFrame(self.transfert_frame, corner_radius=0)
         self.button_frame.grid(row=2, column=1, sticky="w")
@@ -387,6 +432,8 @@ class App(customtkinter.CTk):
     def paginate(self, text):
         if text == 'Transfert sons':
             self.transfert_son_panel()
+            self.controller.checkbox_playlist_output()
+            asyncio.run(self.controller.song_panel())
         elif text == 'Télécharger sons':
             self.download_son_panel()
         elif text == 'Conversion sons':
