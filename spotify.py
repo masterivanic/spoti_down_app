@@ -11,6 +11,7 @@ from tracks import TrackDto
 from type import Type
 from settings import settings
 from enum import Enum
+from cache.cache_handler import CacheFileHandler
 
 
 class SpotifyUtils:
@@ -39,27 +40,27 @@ class SpotifyUtils:
                         tracks.append(Track(track_data))
         return tracks
 
+
 class APIConfig(Enum):
     """ Api configuration """
 
-    SPOTIPY_REDIRECT_URI : str
-    SPOTIFY_CLIENT_ID : str
-    SPOTIFY_CLIENT_SECRET_KEY : str
-    USER_ID : str
-    scopes:str
+    SPOTIPY_REDIRECT_URI: str
+    SPOTIFY_CLIENT_ID: str
+    SPOTIFY_CLIENT_SECRET_KEY: str
+    USER_ID: str
+    scopes: str
 
-        
 
 class SpotifyCustomer:
     """
       my spotify customer use
       to fecth spotify data
 
-      complete those keys with yours or setup it 
+      complete those keys with yours or setup it
       on env vars
     """
-  
-    def __init__(self, config:APIConfig) -> None:
+
+    def __init__(self, config: APIConfig) -> None:
         self.auth_manager = SpotifyOAuth(
             client_id=config.SPOTIFY_CLIENT_ID,
             client_secret=config.SPOTIFY_CLIENT_SECRET_KEY,
@@ -68,6 +69,7 @@ class SpotifyCustomer:
             cache_handler=None
         )
         self.sp_utils = SpotifyUtils()
+        self.rest_cache = CacheFileHandler(cache_path=None, username=None)
 
         token_info = self.auth_manager.get_access_token()
         self.user_id = config.USER_ID
@@ -84,8 +86,14 @@ class SpotifyCustomer:
         now = int(time.time())
         return self.client.auth_manager.cache_handler.get_cached_token()['expires_at'] - now < 60
 
-    # @lru_cache(maxsize=5)
-    def get_user_plalists(self) -> list:
+    def is_cache_expired(self) -> bool:
+        try:
+            now = int(time.time())
+            return self.rest_cache.get_cached_timeout() - now == 0
+        except Exception as error:
+            raise error
+
+    def get_playlist_from_api(self):
         try:
             if not self.is_token_expired():
                 user_playlist = []
@@ -101,7 +109,25 @@ class SpotifyCustomer:
                         playlists = self.client.next(playlists)
                     else:
                         playlists = None
+                user_playlist.append({
+                    'expired_at': 1209600
+                })
+                self.rest_cache.save_response_to_cache(user_playlist)
                 return user_playlist
+        except Exception:
+            return []
+            
+    def get_user_plalists(self) -> list:
+        cache_content = self.rest_cache.get_cached_content()
+        try:
+            if not self.is_token_expired():
+                if cache_content is not None:
+                    print('----- get data from cache -----')
+                    return cache_content
+                else:
+                    print('----- get data from api -----')
+                    user_playlist = self.get_playlist_from_api()
+                    return user_playlist
         except Exception:
             return []
 
@@ -208,8 +234,8 @@ class SpotifyCustomer:
     def create_playlists(self, playlist_name: str) -> bool:
         all_playlist = self.get_user_plalists()
         is_created = False
-        for track in all_playlist:
-            if track['name'] == playlist_name:
+        for i in range(0, len(all_playlist)-1):
+            if all_playlist[i]['name'] == playlist_name:
                 is_created = True
                 break
 
@@ -248,6 +274,20 @@ class SpotifyCustomer:
             if is_exist:
                 self.client.playlist_add_items(track['id'], tracks)
 
+    async def send_one_song_to_playlist(self, song_uri: str, playlist_title):
+        tab_song = []
+        tab_song.append(song_uri)
+        try:
+            if playlist_title is not None:
+                print('in transfert')
+                print(song_uri, playlist_title)
+                self.add_items_in_playlist(
+                    playlist_name=playlist_title,
+                    tracks=tab_song
+                )
+        except Exception as error:
+            print(error)
+
     def delete_playlist(self, playlist_id: str) -> None:
         self.client.user_playlist_unfollow(
             user=self.client.current_user()['id'],
@@ -269,9 +309,9 @@ if __name__ == '__main__':
     # conf.set_scope(settings.scopes)
     # https://open.spotify.com/playlist/4NsW8vXmReVBLB6wjlB9yo?si=
     # print(SpotifyCustomer().is_token_expired())
-    print(SpotifyCustomer(config=conf).get_current_user())
+    # print(SpotifyCustomer(config=conf).get_current_user())
     # print(SpotifyCustomer().is_token_expired())
-    print(SpotifyCustomer(config=conf).get_user())
+    # print(SpotifyCustomer(config=conf).get_user())
     print(SpotifyCustomer(config=conf).get_user_plalists())
     # print(SpotifyCustomer().get_user_plalists.cache_info())
     # print(SpotifyCustomer()._get_playlist_tracks(playlist_id='1kr6NGO0dl0MCySVVaDOIU').cache_info())

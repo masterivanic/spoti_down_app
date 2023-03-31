@@ -1,21 +1,30 @@
 
+from multiprocessing.pool import ThreadPool
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import askdirectory
 from tkinter.filedialog import askopenfilenames
+from crypto import SimpleEncryption
 from spotify import SpotifyCustomer
 from tkinter.messagebox import showwarning
 from tkinter.messagebox import showinfo
 from exceptions import SongError
 from exceptions import ComponentError
 from utils import Utils
+from downloader import Downloader
+from type import Quality, Format
+from utils import PathHolder
 
 import csv
 import tkinter
 import customtkinter
 import asyncio
+import os
 
 
 class Controller:
+
+    SPOTIFY_PLAYLIST_URI = 'https://open.spotify.com/playlist/'
+    SPOTIFY_TRACK_URI = 'https://open.spotify.com/track/'
 
     def __init__(self, view, sp_client:SpotifyCustomer) -> None:
         self.view = view
@@ -25,11 +34,34 @@ class Controller:
         }
         self.search_songs = []
     
-    def create_playlist(self):
+    def create_playlist(self, playlist_name):
         """ permit a user to create a playlist"""
 
+        return self.sp_client.create_playlists(playlist_name)
+
+    def delete_playlist(self, playlist_id):
+        """ permit a user to delete a playlist"""
         pass
 
+    def delete_cache(self):
+        """ delete cache file """
+        try:
+            if os.path.isfile(self.sp_client.rest_cache.get_cache_path()):
+                os.remove(self.sp_client.rest_cache.get_cache_path())
+                showinfo('Info', 'vider avec succès')
+        except Exception as error:
+            raise error
+
+      
+    def get_playlist_from_api(self):
+        """ get playlist to catch update made """
+
+        try:
+            self.sp_client.get_playlist_from_api()
+        except Exception as error:
+            raise error
+        return
+    
     def open_file(self):
         """ get csv file path """
 
@@ -40,7 +72,6 @@ class Controller:
         )
         return file_path
         
-    
     def open_file_mp3(self):
         """ get mp3 file path """
 
@@ -109,7 +140,6 @@ class Controller:
         except:
             raise ComponentError
 
-
     async def song_panel(self):
         """ print all song extract from csv in transfert song panel """
 
@@ -130,7 +160,6 @@ class Controller:
 
             for i, songs in enumerate(self.search_songs):
                 await self.checkbox_song_output(songs, i)
-                print('execute this action.')
                 self.view.update()
         
         except Exception as err:
@@ -151,10 +180,13 @@ class Controller:
             raise error
 
     async def select_and_deselect(self):
+        self.items_selected = []
         self.current_header_state = self.check_var.get()
+
         if self.current_header_state == "on":
             for checkbox in self.scrollable_frame_switches:
-                await Utils.select_checkbox()
+                await Utils.select_checkbox(checkbox)
+                self.items_selected.append(self.checkbox_value.get())
                 self.view.update()
         elif self.current_header_state == "off":
             for checkbox in self.scrollable_frame_switches:
@@ -164,27 +196,130 @@ class Controller:
     def select_checkboxes(self):
         asyncio.run(self.select_and_deselect())
 
-    def checkbox_playlist_output(self):
+    async def checkbox_playlist_output(self):
         """ print all user's playlist in transfert song panel """
 
-        all_playlist = self.sp_client.get_user_plalists() # store this in cache
+        all_playlist = self.sp_client.get_user_plalists()
         self.playlist_var = tkinter.StringVar()
         self.scrollable_playlist_switches = []
-        for i, playlist in enumerate(all_playlist):
-            checkbox =  customtkinter.CTkCheckBox(
-                self.view.scrollable_sons_list, 
-                text=playlist['name'],
-                onvalue=playlist['id'],
-                offvalue='off',
-                variable=self.playlist_var,
-                command=self.selected_playlist
-            )
-            checkbox.grid(row=i, column=0, pady=(0, 10), sticky='nw', padx=30)
-            self.scrollable_playlist_switches.append(checkbox)
 
+        for idx in range(0,len(all_playlist)-1):
+            await self.create_playlist_checkbox(all_playlist[idx], idx)
+            self.view.update()
 
+    async def create_playlist_checkbox(self, value, idx):
+        checkbox =  customtkinter.CTkRadioButton(
+            self.view.scrollable_sons_list, 
+            text=value['name'].encode(encoding="ascii",errors="ignore").decode("utf-8"),
+            value=value['id'],
+            variable=self.playlist_var,
+            command=self.selected_playlist
+        )
+        checkbox.grid(row=idx, column=0, pady=(0, 10), sticky='nw', padx=30)
+        self.scrollable_playlist_switches.append(checkbox)
+        
     def selected_playlist(self):
-        print("selectd playlist:: ", self.playlist_var.get())
+        print("selected playlist:: ", self.playlist_var.get())
+
+    def get_selected_playlist(self):
+        """ get selected playlist title """
+
+        playlist_id = self.playlist_var.get()
+        playlist_name = None
+        if playlist_id:
+            playlist_name = self.sp_client._get_playlist_name(playlist_id)
+            return playlist_name
+        return playlist_name
+
+    def copy_link(self):
+        if self.playlist_var.get():
+            playlist_uri = self.SPOTIFY_PLAYLIST_URI + self.playlist_var.get()
+            encrypted_link = SimpleEncryption(url=playlist_uri)._encrypt_url()
+            Utils.copy_paste_text(self.view, encrypted_link)
+
+    async def transfert_songs(self):
+        """ transfert selected songs in a playlist """
+
+        progress = 0
+        try:
+            playlist_name = self.get_selected_playlist()
+            self.view.progressbar.configure(determinate_speed=1)
+            for song in self.items_selected:
+                await self.sp_client.send_one_song_to_playlist(
+                    song_uri=song,
+                    playlist_title=playlist_name
+                )
+                self.view.update()
+                self.view.progressbar.start()
+                progress = 1 / len(self.items_selected) + progress
+                self.view.progressbar.set(progress)
+            self.view.progressbar.stop()
+            self.view.progressbar.set(0)
+            self.copy_link()
+            showinfo('Success', f'transfert terminée, lien copié')
+            for checkbox in self.scrollable_frame_switches:
+                await Utils.deselect_checkbox(checkbox)
+                self.view.update()
+            Utils.deselect_checkbox(self.header)
+           
+        except Exception as error:
+            raise error
+
+    def download_one_song(self, url):
+        downloader = Downloader(
+            sp_client=self.sp_client,
+            quality=Quality.BEST,
+            download_format=Format.MP3,
+            path_holder=PathHolder(downloads_path=os.getcwd() + '/EkilaDownloader')
+        )
+        downloader.download(query=url)
+
+    def initialise_down_entry(self):
+        try:
+            self.view.down_path.set('')
+            self.view.link_entry.delete(0, tkinter.END)
+        except:
+            raise ComponentError
+
+    def download_songs(self, down_path):
+
+        decrypt_word = SimpleEncryption(url=None)._decrypt_url(down_path)
+        try:
+            with ThreadPool() as pool:
+                self.initialise_down_entry()
+                pool.apply_async(self.call_download_function, (decrypt_word,))
+                self.read_file()
+        except Exception as error:
+           raise error
+
+    def call_download_function(self, link_crypt):
+        downloader = Downloader(
+            sp_client=self.sp_client,
+            quality=Quality.BEST,
+            download_format=Format.MP3,
+            path_holder=PathHolder(downloads_path=os.getcwd() + '/EkilaDownloader')
+        )
+        downloader.call_download(link_crypt)
+        showinfo('Info', 'Tous les fichiers téléchargés avec succès')
+        self.view.textbox.delete("0.0", "end")
+
+    def read_file(self):
+        from os import listdir
+        count = 1
+        for file in listdir('EkilaDownloader'):
+            self.view.textbox.insert(tkinter.INSERT, '\t' + str(count) + '. ' + file + '\n')
+            count += 1
+
+    def wav_conversion(self):
+        pass
+
+    
+
+
+
+       
+        
+
         
 
  

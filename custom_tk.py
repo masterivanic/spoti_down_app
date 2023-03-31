@@ -5,6 +5,7 @@ from controller import Controller
 from spotify import SpotifyCustomer
 from spotify import APIConfig
 from settings import settings
+from multiprocessing.pool import ThreadPool
 
 import tkinter as tk
 import os
@@ -12,6 +13,8 @@ import tkinter
 import tkinter.messagebox
 import customtkinter
 import asyncio
+from tkinter.messagebox import showinfo
+from tkinter.messagebox import showwarning
 
 
 # Modes: "System" (standard), "Dark", "Light"
@@ -74,19 +77,16 @@ class App(customtkinter.CTk):
         self.grid_rowconfigure(6, weight=2)
         self.columnconfigure(0, weight=0)
 
+        sp_client = SpotifyCustomer(config=self.conf)
+        self.controller = Controller(view=self, sp_client=sp_client)
+
         self.menu_bar()
         self.header()
         self.sidebar()
         self.extrat_csv_son_panel()
         self.button_list()
         self.footer()
-        sp_client = SpotifyCustomer(config=self.conf)
-        self.controller = Controller(view=self, sp_client=sp_client)
-
-    def open_input_dialog_event(self):
-        dialog = customtkinter.CTkInputDialog(
-            text="Type in a number:", title="CTkInputDialog")
-        print("CTkInputDialog:", dialog.get_input())
+       
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
@@ -148,12 +148,16 @@ class App(customtkinter.CTk):
         menu_file.add_cascade(label='Ouvrir un fichier audio', command=None)
         menu_file.add_cascade(label='Ouvrir un dossier contenant les sons',command=None)
         menu_file.add_separator()
-        menu_file.add_cascade(label='Créer une playlist ekila', command=None)
         menu_file.add_cascade(
-            label='Copier le lien de la playlist', command=None)
+            label='Créer une playlist', 
+            command=self.open_input_dialog_event
+        )
+        menu_file.add_cascade(
+            label='Copier le lien de la playlist', command=self.controller.copy_link)
         menu_file.add_cascade(label='Supprimer une playlist', command=None)
         menu_file.add_separator()
         menu_file.add_cascade(label='Vider', command=None)
+        menu_file.add_cascade(label='Vider le cache', command=self.controller.delete_cache)
         menu_file.add_separator()
         menu_file.add_cascade(label='Quitter', command=self.quit)
         menu_help.add_command(label='A propos', command=self.about)
@@ -219,8 +223,8 @@ class App(customtkinter.CTk):
 
     def generate_song(self, path:str):
         asyncio.run(self.controller.read_unique_file(path))
+
         
-    
     def transfert_son_panel(self):
         """ dashboard interface for transfert sons in playlist """
 
@@ -254,7 +258,8 @@ class App(customtkinter.CTk):
 
         self.transfert_button = customtkinter.CTkButton(
             self.button_frame, 
-            text="Transférer"
+            text="Transférer",
+            command=lambda:asyncio.run(self.controller.transfert_songs())
         )
         self.supprimer_button = customtkinter.CTkButton(
             self.button_frame, 
@@ -270,10 +275,12 @@ class App(customtkinter.CTk):
         self.transfert_button.grid(row=0, column=0, sticky=tk.W+tk.E)
         self.supprimer_button.grid(row=0, column=1, sticky=tk.W+tk.E, padx=3)
         self.progressbar.grid(row=0, column=2, sticky=tk.W+tk.E, padx=3)
+        self.progressbar.set(0)
 
     def download_son_panel(self):
         """ dashboard interface for download song """
 
+        self.down_path = tkinter.StringVar()
         self.download_frame = customtkinter.CTkFrame(self, corner_radius=0, width=850)
         self.download_frame.grid(row=2, column=1, rowspan=4, columnspan=3, sticky="nsew")
         self.dashboard_title(self.download_frame)
@@ -284,7 +291,7 @@ class App(customtkinter.CTk):
             pady=15,
             padx=5
         )
-        self.link_entry = customtkinter.CTkEntry(self.download_frame, width=500)
+        self.link_entry = customtkinter.CTkEntry(self.download_frame, width=500,textvariable=self.down_path)
         self.link_entry.grid(column=1, row=1,  sticky='nsew', pady=15, padx=100)
         self.textbox = customtkinter.CTkTextbox(self.download_frame, width=800, height=250)
         self.textbox.grid(row=2, column=1, pady=5,  sticky='nw')
@@ -294,15 +301,19 @@ class App(customtkinter.CTk):
             fg_color=("white", "#81f542"),
             border_width=2, 
             text_color=("white", "#ffffff"), 
-            text="Télécharger"
-        ).grid(row=3, column=1, pady=5,  sticky='nw')
+            text="Télécharger",
+            command=lambda:self.controller.download_songs(self.down_path.get())
+        )
+        self.download_sons_button.grid(row=3, column=1, pady=5, sticky='nw')
 
         self.progressbar = customtkinter.CTkProgressBar(
             self.download_frame, 
             height=30, 
             width=350, 
             progress_color=('orange','#FFA500')
-        ).grid(row=3, column=1, padx=150,  sticky='nw')
+        )
+        self.progressbar.grid(row=3, column=1, padx=150,  sticky='nw')
+        self.progressbar.set(0)
 
     def conversion_son_panel(self):
         """ dashboard interface for convert song in wav """
@@ -432,8 +443,9 @@ class App(customtkinter.CTk):
     def paginate(self, text):
         if text == 'Transfert sons':
             self.transfert_son_panel()
-            self.controller.checkbox_playlist_output()
-            asyncio.run(self.controller.song_panel())
+            with ThreadPool() as pool:
+                pool.apply_async(asyncio.run, (self.controller.checkbox_playlist_output(), ))
+                asyncio.run(self.controller.song_panel())
         elif text == 'Télécharger sons':
             self.download_son_panel()
         elif text == 'Conversion sons':
@@ -441,6 +453,23 @@ class App(customtkinter.CTk):
         elif text == 'Recherche fichier':
             self.extrat_csv_son_panel()
 
+    def open_input_dialog_event(self):
+        self.dialog = customtkinter.CTkInputDialog(
+            text="Entrer le titre de la playlist :", 
+            title="Création playlist"
+        )
+        value = self.dialog.get_input()
+        if value:
+            is_create = self.controller.create_playlist(value)
+            if not is_create:
+                showinfo('Info', 'playlist créee avec succès')
+                self.update_playlist()
+            else:
+                showwarning('Attention', f'la playlist {value} existe déjà')
+
+    def update_playlist(self):
+        self.controller.get_playlist_from_api()
+        
     def aside_element(self):
         """ Aside element for notification  """
 

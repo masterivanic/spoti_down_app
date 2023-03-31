@@ -144,3 +144,8 @@ class Utils:
     async def select_checkbox(checkbox:customtkinter.CTkCheckBox):
         """ deselect one checkbox of list of songs """
         checkbox.select()
+
+    @staticmethod
+    def copy_paste_text(view, text: str):
+        view.clipboard_clear()
+        view.clipboard_append(text)
