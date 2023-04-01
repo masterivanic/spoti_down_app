@@ -3,10 +3,13 @@ from window import ApplicationInterface
 import requests.exceptions as internetException
 from tkinter.messagebox import showerror
 
+from custom_tk import App
+
 def launch_app():
     try:
-        app = tix.Tk()
-        gui = ApplicationInterface(app)
+        app = App()
+        # app = tix.Tk()
+        # gui = ApplicationInterface(app)
         app.mainloop()
     except internetException.ConnectionError as err:
         showerror(

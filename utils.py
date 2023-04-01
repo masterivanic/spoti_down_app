@@ -6,6 +6,8 @@ from uuid import uuid1
 from urllib.request import urlretrieve
 from shutil import which
 from os import environ
+from pydub import AudioSegment
+
 import re
 import os
 import customtkinter
@@ -149,3 +151,28 @@ class Utils:
     def copy_paste_text(view, text: str):
         view.clipboard_clear()
         view.clipboard_append(text)
+    	
+    @staticmethod
+    async def mp3_to_wav(file: str):
+        """ convert a mp3 song to wav  """
+
+        sound = AudioSegment.from_mp3(file)
+        path = file.split('/')
+        filename = path[len(path)-1].split('.')[0]
+        del path[len(path)-1]
+        path = '/'.join(path) + '/'
+
+        try:
+            if os.path.isdir(path + 'fichier-wav'):
+                sound.export(
+                    path + 'fichier-wav' + '/' + filename + '.wav', 
+                    format='wav'
+                )
+            else:
+                os.mkdir(path + 'fichier-wav')
+                sound.export(
+                    path + 'fichier-wav' + '/' + filename + '.wav', 
+                    format='wav'
+                )
+        except Exception as error:
+            raise error

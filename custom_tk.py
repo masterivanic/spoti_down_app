@@ -40,29 +40,29 @@ class App(customtkinter.CTk):
 
     image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "images")
     icon_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "images/icon")
-    logo = customtkinter.CTkImage(Image.open(os.path.join(image_path, "logos1.png")), size=(250, 85))
-    logo_welcome = customtkinter.CTkImage(Image.open(os.path.join(image_path, "panel.jpg")), size=(850, 85))
-    pub_image = customtkinter.CTkImage(Image.open(os.path.join(image_path, "large_test_image.png")), size=(250, 100))
+    logo = customtkinter.CTkImage(Image.open("images/logos1.png"), size=(250, 85))
+    logo_welcome = customtkinter.CTkImage(Image.open("images/panel.jpg"), size=(850, 85))
+    pub_image = customtkinter.CTkImage(Image.open("images/large_test_image.png"), size=(250, 100))
 
     #button logo's
     search_image = customtkinter.CTkImage(
-        Image.open(os.path.join(image_path, "icon/rechercher.png")), 
+        Image.open("images/icon/rechercher.png"), 
         size=(GLIPH_ICON_WIDTH, GLIPH_ICON_HEIGHT)
     )
     transfert_image = customtkinter.CTkImage(
-        Image.open(os.path.join(image_path, "icon/transférer.png")),
+        Image.open("images/icon/transférer.png"),
         size=(GLIPH_ICON_WIDTH, GLIPH_ICON_HEIGHT)
     )
     download_image = customtkinter.CTkImage(
-        Image.open(os.path.join(image_path, "icon/télécharger.png")),
+        Image.open("images/icon/télécharger.png"),
         size=(GLIPH_ICON_WIDTH, GLIPH_ICON_HEIGHT)
     )
     convert_image = customtkinter.CTkImage(
-        Image.open(os.path.join(image_path, "icon/convertir.png")),
+        Image.open("images/icon/convertir.png"),
         size=(GLIPH_ICON_WIDTH, GLIPH_ICON_HEIGHT)
     )
     quit_image = customtkinter.CTkImage(
-        Image.open(os.path.join(image_path, "icon/quitter.png")),
+        Image.open("images/icon/quitter.png"),
         size=(GLIPH_ICON_WIDTH, GLIPH_ICON_HEIGHT)
     )
 
@@ -146,7 +146,10 @@ class App(customtkinter.CTk):
 
         menu_file.add_cascade(label='Ouvrir un fichier csv', command=self.get_path_file)
         menu_file.add_cascade(label='Ouvrir un fichier audio', command=None)
-        menu_file.add_cascade(label='Ouvrir un dossier contenant les sons',command=None)
+        menu_file.add_cascade(
+            label='Ouvrir un dossier contenant les sons',
+            command=self.controller.open_song_folder
+        )
         menu_file.add_separator()
         menu_file.add_cascade(
             label='Créer une playlist', 
@@ -157,7 +160,7 @@ class App(customtkinter.CTk):
         menu_file.add_cascade(label='Supprimer une playlist', command=None)
         menu_file.add_separator()
         menu_file.add_cascade(label='Vider', command=None)
-        menu_file.add_cascade(label='Vider le cache', command=self.controller.delete_cache)
+        menu_file.add_cascade(label='Actualiser', command=self.controller.delete_cache)
         menu_file.add_separator()
         menu_file.add_cascade(label='Quitter', command=self.quit)
         menu_help.add_command(label='A propos', command=self.about)
@@ -184,7 +187,7 @@ class App(customtkinter.CTk):
         self.logo_container.grid(row=1, column=0, columnspan=2)
         self.logo_label = customtkinter.CTkLabel(self.logo_container, text="", image=self.logo, width=250)
         self.logo_label.grid(row=0, column=0)
-        self.panel_logo_label = customtkinter.CTkLabel(self.logo_container, text="",  width=850, image=self.logo_welcome)
+        self.panel_logo_label = customtkinter.CTkLabel(self.logo_container, text="",  width=879, image=self.logo_welcome)
         self.panel_logo_label.grid(row=0, column=1, padx=10)
 
     def extrat_csv_son_panel(self):
@@ -212,11 +215,11 @@ class App(customtkinter.CTk):
         self.generate_button.grid(row=3, column=1, pady=5, sticky="nw")
         self.progressbar = customtkinter.CTkProgressBar(
             self.dashboard_frame, 
-            height=30,
+            height=20,
             width=350,
             progress_color=('orange','#FFA500')
         )
-        self.progressbar.grid(row=3, column=1, padx=150, sticky="nw")
+        self.progressbar.grid(row=3, column=1, padx=150, sticky="nw", pady=5)
         self.progressbar.set(0)
         # self.percentage = customtkinter.CTkLabel(self.dashboard_frame, text="1%", justify='center',
         # fg_color='transparent').grid(row=3, column=1,padx=250 , sticky='w')
@@ -244,7 +247,7 @@ class App(customtkinter.CTk):
 
         self.scrollable_sons_list = customtkinter.CTkScrollableFrame(
             self.transfert_frame,
-            label_text="Liste de playlist",
+            label_text="Liste des playlists",
             height=250,
         )
         self.scrollable_sons_list.grid(row=1,column=2, pady=15, sticky=tk.W+tk.E)
@@ -263,7 +266,8 @@ class App(customtkinter.CTk):
         )
         self.supprimer_button = customtkinter.CTkButton(
             self.button_frame, 
-            text="Supprimer"
+            text="Supprimer",
+            command=lambda:self.controller.delete_playlist(self.controller.get_playlist_id())
         )
         self.progressbar = customtkinter.CTkProgressBar(
             self.button_frame, 
@@ -328,7 +332,12 @@ class App(customtkinter.CTk):
             pady=15,
             padx=5
         )
-        self.son_path_entry = customtkinter.CTkEntry(self.conversion_frame, width=500)
+        self.convert_entry = tkinter.StringVar()
+        self.son_path_entry = customtkinter.CTkEntry(
+            self.conversion_frame, 
+            width=500,
+            textvariable=self.convert_entry
+        )
         self.son_path_entry.grid(column=1, row=1,  sticky='nsew', pady=15, padx=100)
         self.textbox = customtkinter.CTkTextbox(self.conversion_frame, width=800, height=250)
         self.textbox.grid(row=2, column=1, pady=5,  sticky='nw')
@@ -354,7 +363,8 @@ class App(customtkinter.CTk):
             fg_color=("white", "#81f542"),
             border_width=2, 
             text_color=("white", "#ffffff"), 
-            text="Convertir en wav"
+            text="Convertir en wav",
+            command=lambda: self.convert_mp3_to_wav(self.convert_entry.get())
         )
 
         self.progressbar = customtkinter.CTkProgressBar(
@@ -367,6 +377,15 @@ class App(customtkinter.CTk):
         self.metadata_button.grid(row=0, column=0, sticky=tk.W+tk.E, padx=10)
         self.convert_sons_button.grid(row=0, column=1, sticky=tk.W+tk.E, padx=10)
         self.progressbar.grid(row=0, column=2, sticky=tk.W+tk.E)
+        self.progressbar.set(0)
+
+    def execute_thread(self, folder_path):
+        asyncio.run(self.controller.convert_mp3_to_wav(folder_path))
+
+    def convert_mp3_to_wav(self, folder_path):
+        with ThreadPool() as pool:
+            pool.apply_async(self.execute_thread, (folder_path, ))
+            print('--- action 2 ---')
 
     def button_list(self):
         """ all pagination button for application """

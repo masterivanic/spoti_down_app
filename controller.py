@@ -5,7 +5,7 @@ from tkinter.filedialog import askdirectory
 from tkinter.filedialog import askopenfilenames
 from crypto import SimpleEncryption
 from spotify import SpotifyCustomer
-from tkinter.messagebox import showwarning
+from tkinter.messagebox import askyesno, showwarning
 from tkinter.messagebox import showinfo
 from exceptions import SongError
 from exceptions import ComponentError
@@ -13,6 +13,7 @@ from utils import Utils
 from downloader import Downloader
 from type import Quality, Format
 from utils import PathHolder
+from pathlib import Path
 
 import csv
 import tkinter
@@ -26,7 +27,7 @@ class Controller:
     SPOTIFY_PLAYLIST_URI = 'https://open.spotify.com/playlist/'
     SPOTIFY_TRACK_URI = 'https://open.spotify.com/track/'
 
-    def __init__(self, view, sp_client:SpotifyCustomer) -> None:
+    def __init__(self, view, sp_client:SpotifyCustomer):
         self.view = view
         self.sp_client = sp_client
         self.state = {
@@ -41,18 +42,34 @@ class Controller:
 
     def delete_playlist(self, playlist_id):
         """ permit a user to delete a playlist"""
-        pass
 
-    def delete_cache(self):
-        """ delete cache file """
         try:
-            if os.path.isfile(self.sp_client.rest_cache.get_cache_path()):
-                os.remove(self.sp_client.rest_cache.get_cache_path())
-                showinfo('Info', 'vider avec succès')
+            if playlist_id:
+                entry = askyesno(
+                    title='Suppression', 
+                    message='Voulez vous supprimer cette playlist ?'
+                )
+                if entry:
+                    self.sp_client.delete_playlist(playlist_id)
+                    self.sp_client.get_playlist_from_api()
+                    asyncio.run(self.checkbox_playlist_output())
+            else:
+                showwarning('Warning', 'Choisir une playlist')
         except Exception as error:
             raise error
 
-      
+    def delete_cache(self):
+        """ delete cache file and actualise app """
+        try:
+            cache_path = self.sp_client.rest_cache.get_cache_path()
+            my_file = Path(cache_path)
+            if my_file.is_file():
+                os.remove(cache_path)
+                if self.view.scrollable_sons_list:
+                    asyncio.run(self.checkbox_playlist_output())
+        except Exception as error:
+            raise error
+
     def get_playlist_from_api(self):
         """ get playlist to catch update made """
 
@@ -208,6 +225,8 @@ class Controller:
             self.view.update()
 
     async def create_playlist_checkbox(self, value, idx):
+        """ create unique playlist  """
+
         checkbox =  customtkinter.CTkRadioButton(
             self.view.scrollable_sons_list, 
             text=value['name'].encode(encoding="ascii",errors="ignore").decode("utf-8"),
@@ -221,6 +240,9 @@ class Controller:
     def selected_playlist(self):
         print("selected playlist:: ", self.playlist_var.get())
 
+    def get_playlist_id(self):
+        return self.playlist_var.get()
+
     def get_selected_playlist(self):
         """ get selected playlist title """
 
@@ -232,36 +254,46 @@ class Controller:
         return playlist_name
 
     def copy_link(self):
+        """ copy a playlist link """
+
         if self.playlist_var.get():
             playlist_uri = self.SPOTIFY_PLAYLIST_URI + self.playlist_var.get()
             encrypted_link = SimpleEncryption(url=playlist_uri)._encrypt_url()
             Utils.copy_paste_text(self.view, encrypted_link)
+            showinfo('Info', 'actualiser avec succès')
 
     async def transfert_songs(self):
         """ transfert selected songs in a playlist """
 
         progress = 0
+        playlist_name = self.get_selected_playlist()
         try:
-            playlist_name = self.get_selected_playlist()
-            self.view.progressbar.configure(determinate_speed=1)
-            for song in self.items_selected:
-                await self.sp_client.send_one_song_to_playlist(
-                    song_uri=song,
-                    playlist_title=playlist_name
-                )
-                self.view.update()
-                self.view.progressbar.start()
-                progress = 1 / len(self.items_selected) + progress
-                self.view.progressbar.set(progress)
-            self.view.progressbar.stop()
-            self.view.progressbar.set(0)
-            self.copy_link()
-            showinfo('Success', f'transfert terminée, lien copié')
-            for checkbox in self.scrollable_frame_switches:
-                await Utils.deselect_checkbox(checkbox)
-                self.view.update()
-            Utils.deselect_checkbox(self.header)
-           
+            if len(self.items_selected) > 0:
+                if playlist_name:
+                    self.view.progressbar.configure(determinate_speed=1)
+                    for song in self.items_selected:
+                        self.view.progressbar.start()
+                        self.view.progressbar.stop()
+                        await self.sp_client.send_one_song_to_playlist(
+                            song_uri=song,
+                            playlist_title=playlist_name
+                        )
+                        self.view.update()
+                        progress = 1 / len(self.items_selected) + progress
+                        self.view.progressbar.set(progress)
+                    self.view.progressbar.stop()
+                    self.view.progressbar.set(0)
+                    self.copy_link()
+                    showinfo('Success', f'transfert terminée, lien copié')
+                    for checkbox in self.scrollable_frame_switches:
+                        await Utils.deselect_checkbox(checkbox)
+                        self.view.update()
+                    Utils.deselect_checkbox(self.header)
+                else:
+                    showwarning('Warning', 'Choisir une playlist')
+            else:
+                showwarning('Warning', 'Choisir tous les sons')
+
         except Exception as error:
             raise error
 
@@ -282,15 +314,17 @@ class Controller:
             raise ComponentError
 
     def download_songs(self, down_path):
-
-        decrypt_word = SimpleEncryption(url=None)._decrypt_url(down_path)
-        try:
-            with ThreadPool() as pool:
-                self.initialise_down_entry()
-                pool.apply_async(self.call_download_function, (decrypt_word,))
-                self.read_file()
-        except Exception as error:
-           raise error
+        if down_path != '':
+            decrypt_word = SimpleEncryption(url=None)._decrypt_url(down_path)
+            try:
+                with ThreadPool() as pool:
+                    self.initialise_down_entry()
+                    pool.apply_async(self.call_download_function, (decrypt_word,))
+                    self.read_file()
+            except Exception as error:
+                raise error
+        else:
+            showwarning('Warning', "Copier le lien d'une playlist")
 
     def call_download_function(self, link_crypt):
         downloader = Downloader(
@@ -310,8 +344,40 @@ class Controller:
             self.view.textbox.insert(tkinter.INSERT, '\t' + str(count) + '. ' + file + '\n')
             count += 1
 
-    def wav_conversion(self):
-        pass
+    def open_song_folder(self):
+        path = askdirectory(title='Selectionner un dossier')
+        if self.view.convert_entry:
+            self.view.convert_entry.set(str(path))
+            if self.view.convert_entry.get() != '':
+                self.view.son_path_entry.delete(0, tkinter.END)
+            self.view.son_path_entry.insert(0, str(path))
+
+    
+    async def convert_mp3_to_wav(self, folder_path):
+        progress = 0
+        if folder_path:
+            directory = os.listdir(folder_path)
+            if len(directory) > 0:
+                self.view.progressbar.configure(determinate_speed=1)
+                speed = 1 / len(directory)
+                for file in directory:
+                    is_file_mp3 = Utils.is_mp3(file)
+                    try:
+                        if is_file_mp3:
+                            self.view.progressbar.start()
+                            self.view.progressbar.stop()
+                            await Utils.mp3_to_wav(folder_path + '/' + file)
+                            progress = speed + progress
+                            self.view.progressbar.set(progress)
+                    except:
+                        pass
+                    
+                self.view.progressbar.stop()
+                self.view.progressbar.set(0)
+                self.view.convert_entry.set('')
+                showinfo('Info', 'Operation terminée')
+            else: showwarning('Warning', 'Dossier vide')
+        else: showwarning('Warning', 'Choisir un dossier')
 
     
 

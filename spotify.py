@@ -176,7 +176,13 @@ class SpotifyCustomer:
 
     def get_playlist_items(self, playlist_id) -> str:
         playlist_items = self.client.playlist_items(
-            playlist_id, fields=None, limit=100, offset=0, market=None, additional_types=('track', 'episode'))
+            playlist_id, 
+            fields=None, 
+            limit=100, 
+            offset=0, 
+            market=None, 
+            additional_types=('track', 'episode')
+        )
         return playlist_items['items']
 
     def search_song(self, query) -> tuple:
