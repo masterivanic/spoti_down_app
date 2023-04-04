@@ -20,6 +20,9 @@ import tldextract
 import time
 
 
+class SongExists(Exception):
+    pass
+
 class DownloaderUtils:
 
     @staticmethod
@@ -168,7 +171,7 @@ class Downloader:
                 '-metadata', f'title={track.name}',
                 '-metadata', f'album={track.album_name}',
                 '-metadata', f'date={track.release_date}',
-                '-metadata', f'artist={", ".join(track.artist_names)}',
+                '-metadata', f'artist={", ".join(artist.upper() for artist in track.artist_names)}',
                 '-metadata', f'disc={track.disc_number}',
                 '-metadata', f'track={track.track_number}/{track.album_track_count}',
             ],
@@ -274,3 +277,15 @@ class Downloader:
 
 if __name__ == '__main__':
     pass
+    # print('Downloading started here.................')
+    # import os
+    # spotify_client = SpotifyCustomer()
+    # Downloader(sp_client=spotify_client,
+    #                             quality=Quality.BEST,
+    #                             download_format=Format.MP3,
+    #                             path_holder=PathHolder(
+    #                                 downloads_path=os.getcwd() + '/EkilaDownloader')
+    #                             ).download(query='https://open.spotify.com/playlist/52ccIIeQhU5kDEC9kXrgfe')
+
+
+

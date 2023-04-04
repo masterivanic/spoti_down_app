@@ -200,6 +200,7 @@ class SpotifyCustomer:
 
     def search(self, query, query_type=Type.TRACK) -> list:
         results = self.client.search(q=query, limit=1, type=query_type)
+    
         if len(results[query_type + 's']['items']) > 0:
             if query_type == Type.TRACK:
                 return [Track(results[Type.TRACK + 's']['items'][0])]
@@ -232,6 +233,10 @@ class SpotifyCustomer:
             tracks.extend(results['items'])
 
         playlist['tracks'] = tracks
+        import json
+        with open('data.json', 'w') as f:
+            json.dump(playlist, f)
+
         return self.sp_utils._SpotifyUtils__pack_playlist(playlist, is_playlist_panel)
 
     def _get_playlist_name(self, playlist_id) -> str:
@@ -299,6 +304,8 @@ class SpotifyCustomer:
             user=self.client.current_user()['id'],
             playlist_id=playlist_id
         )
+    
+         
 
 
 if __name__ == '__main__':
@@ -308,6 +315,8 @@ if __name__ == '__main__':
     conf.SPOTIPY_REDIRECT_URI = settings.SPOTIPY_REDIRECT_URI
     conf.SPOTIFY_CLIENT_SECRET_KEY = settings.SPOTIFY_CLIENT_SECRET_KEY
     conf.scopes = settings.scopes
+    # print(SpotifyCustomer(config=conf).get_track(track_id="2BRuC1Gtyrp33o84uvkkWr"))
+
 
     # conf.set_user_id(settings.USER_ID)
     # conf.set_redirect_uri(settings.SPOTIPY_REDIRECT_URI)
@@ -318,6 +327,8 @@ if __name__ == '__main__':
     # print(SpotifyCustomer(config=conf).get_current_user())
     # print(SpotifyCustomer().is_token_expired())
     # print(SpotifyCustomer(config=conf).get_user())
-    print(SpotifyCustomer(config=conf).get_user_plalists())
+    # print(SpotifyCustomer(config=conf).get_user_plalists())
     # print(SpotifyCustomer().get_user_plalists.cache_info())
-    # print(SpotifyCustomer()._get_playlist_tracks(playlist_id='1kr6NGO0dl0MCySVVaDOIU').cache_info())
+    value = SpotifyCustomer(config=conf)._get_playlist_tracks(playlist_id='1kr6NGO0dl0MCySVVaDOIU')
+    value = [track.url for track in value]
+    print(value)

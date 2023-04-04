@@ -23,6 +23,8 @@ from tkinter import tix
 import requests.exceptions as internetException
 from crypto import SimpleEncryption
 from utils import copy_csv_to_another
+from settings import settings
+from spotify import APIConfig
 
 __all__ = ["SpotifyCustomerException"]
 
@@ -45,6 +47,13 @@ class ApplicationInterface:
     global logger
     logger = logging.getLogger(__name__)
 
+    conf = APIConfig
+    conf.SPOTIFY_CLIENT_ID = settings.SPOTIFY_CLIENT_ID
+    conf.USER_ID = settings.USER_ID
+    conf.SPOTIPY_REDIRECT_URI = settings.SPOTIPY_REDIRECT_URI
+    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.SPOTIFY_CLIENT_SECRET_KEY
+    conf.scopes = settings.scopes
+
     def __init__(self, master):
         self.file = None
         self.file_mp3 = None
@@ -58,7 +67,7 @@ class ApplicationInterface:
         self.playlist_id = None
         self.playlist_title = None
         self.song_not_found = []
-        self.spotify_client = SpotifyCustomer()
+        self.spotify_client = SpotifyCustomer(config=self.conf)
         self.master.title('Ekila Downloader')
         self.master.iconbitmap("images/logo.ico")
         self.master.resizable(width=False, height=False)
@@ -350,7 +359,7 @@ class ApplicationInterface:
 
         if len(files) == 1:
             with ThreadPool() as pool:
-                _ = pool.apply_async(self._read_unique_file, (files[0],))
+                _ = pool.apply_async(self._read_unique_file, (files[0],), callback=None)
                 self.create_loader(
                     self.page_one, 'Recherche en cours...', 8, 3)
 
@@ -573,7 +582,7 @@ class ApplicationInterface:
             self.loader.grid(row=row, column=column, pady=5)
             self.master.update()
         except Exception as error:
-            print(error)
+            pass
 
     async def convert_mp3_to_wav(self):
         path = self.song_path.get()
@@ -670,7 +679,10 @@ class ApplicationInterface:
                 self.master.update()
         except:
             pass
-
+    """
+        Transfert selected songs in a playlist
+        if that song didn't already exist in the playlist 
+    """
     async def add_track_in_playlist(self):
         from multiprocessing.pool import ThreadPool
         from multiprocessing import cpu_count
@@ -767,9 +779,11 @@ class ApplicationInterface:
                                 download_format=Format.MP3,
                                 path_holder=PathHolder(downloads_path=os.getcwd() + '/EkilaDownloader'))
         downloader.call_download(link_crypt)
-        self.loader.grid_forget()
-        self.master.update()
         showinfo('Info', 'Tous les fichiers téléchargés avec succès')
+        if self.loader:
+            self.loader.grid_forget()
+            self.master.update()
+
 
     def insert_metadata_in_excel(self, file_path: str):
         pass
@@ -798,13 +812,16 @@ class ApplicationInterface:
 
     def quit(self):
         entry = askyesno(
-            title='Exit', message='Etes vous sur de vouloir quitter?')
-        if entry:
-            self.master.destroy()
+            title='Exit', 
+            message='Etes vous sur de vouloir quitter?'
+        )
+        if entry: self.master.destroy()
 
     def about(self):
-        showinfo(title='A propos',
-                 message='Ekila Downloader v0.1, copyright MNLV Africa \n Droits réservés')
+        showinfo(
+            title='A propos',
+            message='Ekila Downloader v0.1, copyright MNLV Africa \n Droits réservés'
+        )
 
 
 # ----------setup application--------------------

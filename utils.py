@@ -175,4 +175,6 @@ class Utils:
                     format='wav'
                 )
         except Exception as error:
+            print('------------- error lors de conversion -----------------------')
+            print(error)
             raise error

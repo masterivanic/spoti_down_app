@@ -30,9 +30,6 @@ class Controller:
     def __init__(self, view, sp_client:SpotifyCustomer):
         self.view = view
         self.sp_client = sp_client
-        self.state = {
-            'search_songs': []
-        }
         self.search_songs = []
     
     def create_playlist(self, playlist_name):
@@ -60,6 +57,7 @@ class Controller:
 
     def delete_cache(self):
         """ delete cache file and actualise app """
+
         try:
             cache_path = self.sp_client.rest_cache.get_cache_path()
             my_file = Path(cache_path)
@@ -180,7 +178,7 @@ class Controller:
                 self.view.update()
         
         except Exception as err:
-            print(err)
+            raise err
 
     async def checkbox_song_output(self, songs, index):
         try:
@@ -260,7 +258,7 @@ class Controller:
             playlist_uri = self.SPOTIFY_PLAYLIST_URI + self.playlist_var.get()
             encrypted_link = SimpleEncryption(url=playlist_uri)._encrypt_url()
             Utils.copy_paste_text(self.view, encrypted_link)
-            showinfo('Info', 'actualiser avec succès')
+            showinfo('Info', 'copier avec succès')
 
     async def transfert_songs(self):
         """ transfert selected songs in a playlist """
@@ -297,7 +295,7 @@ class Controller:
         except Exception as error:
             raise error
 
-    def download_one_song(self, url):
+    async def download_one_song(self, url):
         downloader = Downloader(
             sp_client=self.sp_client,
             quality=Quality.BEST,
@@ -313,29 +311,56 @@ class Controller:
         except:
             raise ComponentError
 
-    def download_songs(self, down_path):
-        if down_path != '':
-            decrypt_word = SimpleEncryption(url=None)._decrypt_url(down_path)
-            try:
-                with ThreadPool() as pool:
-                    self.initialise_down_entry()
-                    pool.apply_async(self.call_download_function, (decrypt_word,))
-                    self.read_file()
-            except Exception as error:
-                raise error
-        else:
-            showwarning('Warning', "Copier le lien d'une playlist")
+    async def download_songs(self, down_path):
 
-    def call_download_function(self, link_crypt):
-        downloader = Downloader(
-            sp_client=self.sp_client,
-            quality=Quality.BEST,
-            download_format=Format.MP3,
-            path_holder=PathHolder(downloads_path=os.getcwd() + '/EkilaDownloader')
-        )
-        downloader.call_download(link_crypt)
-        showinfo('Info', 'Tous les fichiers téléchargés avec succès')
-        self.view.textbox.delete("0.0", "end")
+        progress = 0
+        playlist_url = SimpleEncryption(url=None)._decrypt_url(down_path).split('/')
+        playlist_id = playlist_url[len(playlist_url)-1]
+
+        try:
+            value = self.sp_client._get_playlist_tracks(playlist_id=playlist_id)
+            tracks = [track.url for track in value]
+            if len(tracks) > 0:
+                self.initialise_down_entry()
+                for song_url in tracks:
+                    self.view.progressbar.start()
+                    self.view.progressbar.stop()
+                    await self.download_one_song(song_url)
+                    progress = 1 / len(tracks) + progress
+                    self.view.progressbar.set(progress)
+
+                self.view.progressbar.stop()
+                self.view.progressbar.set(0)
+                showinfo('Success', f'téléchargement terminé')
+            else:
+                showwarning('warning', 'playlist vide')
+        except Exception as error:
+            raise error
+
+        
+    # def download_songs(self, down_path):
+    #     if down_path != '':
+    #         decrypt_word = SimpleEncryption(url=None)._decrypt_url(down_path)
+    #         try:
+    #             with ThreadPool() as pool:
+    #                 self.initialise_down_entry()
+    #                 pool.apply_async(self.call_download_function, (decrypt_word,))
+    #                 self.read_file()
+    #         except Exception as error:
+    #             raise error
+    #     else:
+    #         showwarning('Warning', "Copier le lien d'une playlist")
+
+    # def call_download_function(self, link_crypt):
+    #     downloader = Downloader(
+    #         sp_client=self.sp_client,
+    #         quality=Quality.BEST,
+    #         download_format=Format.MP3,
+    #         path_holder=PathHolder(downloads_path=os.getcwd() + '/EkilaDownloader')
+    #     )
+    #     downloader.call_download(link_crypt)
+    #     showinfo('Info', 'Tous les fichiers téléchargés avec succès')
+    #     self.view.textbox.delete("0.0", "end")
 
     def read_file(self):
         from os import listdir
@@ -369,8 +394,8 @@ class Controller:
                             await Utils.mp3_to_wav(folder_path + '/' + file)
                             progress = speed + progress
                             self.view.progressbar.set(progress)
-                    except:
-                        pass
+                    except Exception as error:
+                        raise error
                     
                 self.view.progressbar.stop()
                 self.view.progressbar.set(0)
