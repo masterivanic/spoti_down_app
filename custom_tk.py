@@ -15,6 +15,7 @@ import customtkinter
 import asyncio
 from tkinter.messagebox import showinfo
 from tkinter.messagebox import showwarning
+from datetime import datetime
 
 
 # Modes: "System" (standard), "Dark", "Light"
@@ -39,6 +40,7 @@ class App(customtkinter.CTk):
     GLIPH_ICON_WIDTH = 40
     GLIPH_ICON_HEIGHT = 40
 
+    current_date = datetime.today().strftime('%d-%m-%Y')
     logo = customtkinter.CTkImage(Image.open("images/logos.png"), size=(250, 145))
     logo_welcome = customtkinter.CTkImage(Image.open("images/ekila-downaudio.jpg"), size=(879, 145))
     pub_image = customtkinter.CTkImage(Image.open("images/large_test_image.png"), size=(250, 100))
@@ -67,10 +69,11 @@ class App(customtkinter.CTk):
 
     conf = get_api_configuration()
 
-    def __init__(self):
+    def __init__(self, user_login):
         super().__init__()
 
         self.title("Ekila Downloader App")
+        self.user_login = user_login
         self.geometry(f"{1129}x{675}")
         self.resizable(0, 0)
         self.grid_rowconfigure(6, weight=2)
@@ -183,12 +186,13 @@ class App(customtkinter.CTk):
         )
         self.title_dash.grid(row=0, column=1, pady=10, sticky="news")
 
+    
     def header(self):
         """ define the header of the application """
 
-        self.user_label = customtkinter.CTkLabel(master=self, text="Username")
+        self.user_label = customtkinter.CTkLabel(master=self, text=f"{self.user_login}")
         self.user_label.grid(row=0, column=0, sticky="nw", padx=2)
-        self.date_label = customtkinter.CTkLabel(master=self, text="Mardi 0/1/2")
+        self.date_label = customtkinter.CTkLabel(master=self, text=self.current_date)
         self.date_label.grid(row=0, column=1, ipadx=20, padx=50,  sticky="e")
 
         self.logo_container = customtkinter.CTkFrame(self, corner_radius=0, width=1129)

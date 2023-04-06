@@ -49,7 +49,6 @@ class CacheFileHandler(CacheHandler):
             if username: cache_path += "-" + str(username)
             self.cache_path = cache_path
             
-        
         home = Path.home()
         if platform == "win32":
             self.cache_path = home / 'AppData/Roaming/EkilaDownloader/.cache_response'
@@ -58,7 +57,7 @@ class CacheFileHandler(CacheHandler):
         elif platform == "darwin":
             self.cache_path = home / '.local/share/EkilaDownloader/.cache_response'
         self.cache_path = self.cache_path.as_uri().split('///')[1]
-        # print(self.cache_path)
+
 
     def get_cache_path(self):
         return str(self.cache_path)

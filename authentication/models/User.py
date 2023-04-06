@@ -1,6 +1,14 @@
 
-from uuid import uuid1
 
+__all__ = ['models']
+
+from uuid import uuid1
+from datetime import datetime
+
+
+def get_time_today():
+    """ get current date time """
+    return datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
 
 class User:
     """
@@ -8,12 +16,12 @@ class User:
     """
     
     def __init__(self, username, email, password) -> None:
-        self.__user_id = int(uuid1())
+        self.__user_id = None
         self.__username = username
         self.__email = email
         self.__password = password
-        self.__last_login = None #datetime field
-        self.__date_joined = None # datetime field
+        self.__last_login = get_time_today() #datetime field
+        self.__date_joined = get_time_today() # datetime field
         self.__is_active = True
         self.__is_admin = False
 
@@ -36,6 +44,10 @@ class User:
     @property
     def get_date_joined(self):
         return self.__date_joined
+
+    @property
+    def get_user_id(self):
+        return self.__user_id
     
     def is_user_active(self):
         return self.__is_active
@@ -51,6 +63,9 @@ class User:
 
     def set_password(self, password):
         self.__password = password
+
+    def set_user_id(self, user_id):
+        self.__user_id = user_id
 
     def __str__(self) -> str:
         return f"{self.__username} -- {self.__user_id}"

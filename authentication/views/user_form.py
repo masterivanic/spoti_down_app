@@ -1,6 +1,13 @@
 
-from PIL import Image
 
+__all__ = ['user_repo', 'models']
+
+from PIL import Image
+from ..models.User import User
+from ..controllers.user_controller import UserController
+from tkinter.messagebox import showinfo
+from tkinter.messagebox import showwarning
+from tkinter.messagebox import showerror
 
 import customtkinter
 import tkinter as tk
@@ -13,6 +20,10 @@ class AuthForm(customtkinter.CTk):
         size=(200, 200)
     )
 
+    controller = UserController()
+    is_destroy = False
+    user_login = None
+    
     def __init__(self):
         super().__init__()
 
@@ -106,7 +117,7 @@ class AuthForm(customtkinter.CTk):
             border_width=0,
             text_color=("white", "#ffffff"),
             text="Connexion",
-            command=lambda:self.connexion(self.email_value.get())
+            command=lambda:self.connexion()
         )
         self.login_button.grid(row=3, column=2, padx=70)
 
@@ -139,22 +150,25 @@ class AuthForm(customtkinter.CTk):
         self.username = customtkinter.CTkLabel(self, text="Nom utilisateur: ")
         self.username.grid(row=2, column=1, sticky=tk.W+tk.E, pady=10)
 
+        self.username_value = tk.StringVar()
         self.username_entry = customtkinter.CTkEntry(
             self,
-            show="*",
             width=250, 
             corner_radius=2,
+            textvariable=self.username_value,
         )
         self.username_entry.grid(row=2, column=2, sticky=tk.W, pady=10)
 
         self.password_label = customtkinter.CTkLabel(self, text="Mot de passe: ")
         self.password_label.grid(row=3, column=1, sticky=tk.W+tk.E, pady=10)
 
+        self.password_value = tk.StringVar()
         self.password_entry = customtkinter.CTkEntry(
             self,
             show="*",
             width=250, 
             corner_radius=2,
+            textvariable=self.password_value,
         )
         self.password_entry.grid(row=3, column=2, sticky=tk.W, pady=10)
 
@@ -164,7 +178,7 @@ class AuthForm(customtkinter.CTk):
             border_width=0,
             text_color=("white", "#ffffff"),
             text="Valider",
-            command=None
+            command=self.register_user
         )
         self.register_button.grid(row=4, column=2, padx=70)
         self.go_back_button = customtkinter.CTkButton(
@@ -177,12 +191,57 @@ class AuthForm(customtkinter.CTk):
         )
         self.go_back_button.grid(row=4, column=1)
 
-    def connexion(self, value):
-        is_valid = self.validate(value)
-        if not is_valid:
-            self.show_message(error='Email invalide', color=("red", "#de1212"))
+    def connexion(self):
+        email = self.email_value.get()
+        password = self.password.get()
 
+        if email == "" or password == "":
+            showwarning("Warning", "remplir tous les champs")
+        elif email and password:
+            is_valid = self.validate(email)
+            if not is_valid:
+                showwarning("Warning", "format email invalide")
+            else:
+                user = User(
+                    username = None,
+                    email = email,
+                    password = password
+                )
+                is_login = self.controller.user_login(user)
+                if is_login == None:
+                    showwarning("Warning", "Utilisateur n'existe pas")
+                elif is_login == True:
+                    self.is_destroy = True
+                    self.user_login = self.controller.update_user_last_login(email)
+                    self.destroy()
+                elif is_login == False:
+                    showerror("Errror", "email/mot de passe incorrect")
         
+
+    def register_user(self):
+        username = self.username_value.get()
+        email = self.email_value.get()
+        password = self.password_value.get()
+
+        if username == "" or email == "" or password == "":
+            showwarning("Warning", "remplir tous les champs")
+        elif username and email and password:
+            is_valid = self.validate(email)
+            if len(password) < 8:
+                showwarning("Warning", "mot de passe court, 8 caracteres au minimum")
+            elif is_valid:
+                new_user = User(
+                    username = username,
+                    email = email,
+                    password = password
+                )
+                is_register = self.controller.register_user(new_user)
+                if is_register: showinfo("Success", "enregistrer avec succes")
+                else: showwarning("Warning", "Utilisateur existe deja")
+                
+            elif not is_valid:
+                showerror("Error", "Email invalide")
+
         
 
 if __name__ == "__main__":
