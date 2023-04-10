@@ -1,8 +1,6 @@
-
-import json
 import errno
+import json
 import logging
-
 from pathlib import Path
 from sys import platform
 
@@ -48,7 +46,7 @@ class CacheFileHandler(CacheHandler):
             if username is None: username='anonymous'
             if username: cache_path += "-" + str(username)
             self.cache_path = cache_path
-            
+
         home = Path.home()
         if platform == "win32":
             self.cache_path = home / 'AppData/Roaming/EkilaDownloader/.cache_response'
@@ -61,7 +59,7 @@ class CacheFileHandler(CacheHandler):
 
     def get_cache_path(self):
         return str(self.cache_path)
-     
+
     def get_cached_timeout(self):
         timeout_info = None
         try:
@@ -87,7 +85,7 @@ class CacheFileHandler(CacheHandler):
             content = f.read()
             f.close()
             content = json.loads(content)
-                
+
         except IOError as error:
             if error.errno == errno.ENOENT:
                 logger.debug("cache does not exist at: %s", self.cache_path)
@@ -105,7 +103,7 @@ class CacheFileHandler(CacheHandler):
                 'Couldn\'t write response to cache at: %s',
                 self.cache_path
             )
-    
+
     def set_cache_timeout(self, time_added):
         try:
             f = open(self.cache_path)
@@ -114,7 +112,7 @@ class CacheFileHandler(CacheHandler):
             content = json.loads(content)
             if isinstance(content, list):
                 content[len(content)-1]['expired_at'] = time_added
-                
+
         except IOError as error:
             if error.errno == errno.ENOENT:
                 logger.debug("cache does not exist at: %s", self.cache_path)

@@ -1,34 +1,42 @@
+__all__ = ["models"]
 
-
-__all__ = ['models']
-
-from uuid import uuid1
 from datetime import datetime
+from uuid import uuid1
 
 
 def get_time_today():
-    """ get current date time """
-    return datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
+    """get current date time"""
+    return datetime.utcnow().strftime("%d-%m-%Y %H:%M:%S")
+
+
+class Permission:
+    """
+    Define user permission on app.
+    """
+
+    def __init__(self) -> None:
+        pass
+
 
 class User:
     """
-        Define user model of application.
+    Define user model of application.
     """
-    
+
     def __init__(self, username, email, password) -> None:
         self.__user_id = None
         self.__username = username
         self.__email = email
         self.__password = password
-        self.__last_login = get_time_today() #datetime field
-        self.__date_joined = get_time_today() # datetime field
+        self.__last_login = get_time_today()  # datetime field
+        self.__date_joined = get_time_today()  # datetime field
         self.__is_active = True
         self.__is_admin = False
 
     @property
     def get_username(self):
         return self.__username
-    
+
     @property
     def get_email(self):
         return self.__email
@@ -48,7 +56,7 @@ class User:
     @property
     def get_user_id(self):
         return self.__user_id
-    
+
     def is_user_active(self):
         return self.__is_active
 
@@ -69,10 +77,9 @@ class User:
 
     def __str__(self) -> str:
         return f"{self.__username} -- {self.__user_id}"
-    
-        
-class UserDTO(User):
 
+
+class UserDTO(User):
     def __init__(self, *args, **kwargs) -> None:
         User.__init__(*args, **kwargs)
         self.user_api_keys = None

@@ -1,29 +1,27 @@
-
-
 __all__ = ['user_repo', 'models']
 
-from PIL import Image
-from ..models.User import User
-from ..controllers.user_controller import UserController
-from tkinter.messagebox import showinfo
-from tkinter.messagebox import showwarning
-from tkinter.messagebox import showerror
+import re
+import tkinter as tk
+from tkinter.messagebox import showerror, showinfo, showwarning
 
 import customtkinter
-import tkinter as tk
-import re
+from PIL import Image
+
+from ..controllers.user_controller import UserController
+from ..models.User import User
+
 
 class AuthForm(customtkinter.CTk):
 
     logo = customtkinter.CTkImage(
-        Image.open("images/login.png"), 
+        Image.open("images/login.png"),
         size=(200, 200)
     )
 
     controller = UserController()
     is_destroy = False
     user_login = None
-    
+
     def __init__(self):
         super().__init__()
 
@@ -79,7 +77,7 @@ class AuthForm(customtkinter.CTk):
         self.go_back_button.grid_forget()
         self.login_form()
         if self.label_error: self.label_error.grid_forget()
-        
+
     def login_form(self):
 
         self.email = customtkinter.CTkLabel(self,  text="Email: ")
@@ -87,9 +85,9 @@ class AuthForm(customtkinter.CTk):
 
         self.email_value = tk.StringVar()
         self.email_entry = customtkinter.CTkEntry(
-            self, 
+            self,
             width=250,
-            corner_radius=2, 
+            corner_radius=2,
             placeholder_text="admin@gmail.com",
             textvariable=self.email_value,
         )
@@ -97,7 +95,7 @@ class AuthForm(customtkinter.CTk):
         self.email_entry.bind(command=lambda:self.validate(self.email_value.get()))
 
         self.label_error = customtkinter.CTkLabel(self)
-       
+
         self.pwd_label = customtkinter.CTkLabel(self,  text="Mot de passe: ")
         self.pwd_label.grid(row=2, column=1, sticky=tk.W+tk.E, pady=10)
 
@@ -105,14 +103,14 @@ class AuthForm(customtkinter.CTk):
         self.password_entry = customtkinter.CTkEntry(
             self,
             show="*",
-            width=250, 
+            width=250,
             corner_radius=2,
             textvariable=self.password
         )
         self.password_entry.grid(row=2, column=2, sticky=tk.W, pady=10)
 
         self.login_button = customtkinter.CTkButton(
-            self,  
+            self,
             corner_radius=2,
             border_width=0,
             text_color=("white", "#ffffff"),
@@ -139,9 +137,9 @@ class AuthForm(customtkinter.CTk):
 
         self.email_value = tk.StringVar()
         self.email_entry = customtkinter.CTkEntry(
-            self, 
+            self,
             width=250,
-            corner_radius=2, 
+            corner_radius=2,
             placeholder_text="admin@gmail.com",
             textvariable=self.email_value,
         )
@@ -153,7 +151,7 @@ class AuthForm(customtkinter.CTk):
         self.username_value = tk.StringVar()
         self.username_entry = customtkinter.CTkEntry(
             self,
-            width=250, 
+            width=250,
             corner_radius=2,
             textvariable=self.username_value,
         )
@@ -166,14 +164,14 @@ class AuthForm(customtkinter.CTk):
         self.password_entry = customtkinter.CTkEntry(
             self,
             show="*",
-            width=250, 
+            width=250,
             corner_radius=2,
             textvariable=self.password_value,
         )
         self.password_entry.grid(row=3, column=2, sticky=tk.W, pady=10)
 
         self.register_button = customtkinter.CTkButton(
-            self,  
+            self,
             corner_radius=2,
             border_width=0,
             text_color=("white", "#ffffff"),
@@ -182,7 +180,7 @@ class AuthForm(customtkinter.CTk):
         )
         self.register_button.grid(row=4, column=2, padx=70)
         self.go_back_button = customtkinter.CTkButton(
-            self,  
+            self,
             corner_radius=2,
             border_width=0,
             text_color=("white", "#ffffff"),
@@ -216,7 +214,6 @@ class AuthForm(customtkinter.CTk):
                     self.destroy()
                 elif is_login == False:
                     showerror("Errror", "email/mot de passe incorrect")
-        
 
     def register_user(self):
         username = self.username_value.get()
@@ -238,11 +235,10 @@ class AuthForm(customtkinter.CTk):
                 is_register = self.controller.register_user(new_user)
                 if is_register: showinfo("Success", "enregistrer avec succes")
                 else: showwarning("Warning", "Utilisateur existe deja")
-                
+
             elif not is_valid:
                 showerror("Error", "Email invalide")
 
-        
 
 if __name__ == "__main__":
     app = AuthForm()

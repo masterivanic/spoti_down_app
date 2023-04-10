@@ -1,16 +1,16 @@
-
+import os
+import re
+from os import environ
 from pathlib import Path
 from shutil import rmtree
-from sys import platform
-from uuid import uuid1
-from urllib.request import urlretrieve
 from shutil import which
-from os import environ
+from sys import platform
+from urllib.request import urlretrieve
+from uuid import uuid1
+
+import customtkinter
 from pydub import AudioSegment
 
-import re
-import os
-import customtkinter
 __all__ = ['PathHolder']
 
 
@@ -114,8 +114,8 @@ class PathHolder:
         return file_path
 
 """
-ERROR: Unable to extract uploader id; please report this issue on https://yt-dl.org/bug . 
-Make sure you are using the latest version; type  youtube-dl -U  to update. 
+ERROR: Unable to extract uploader id; please report this issue on https://yt-dl.org/bug .
+Make sure you are using the latest version; type  youtube-dl -U  to update.
 Be sure to call youtube-dl with the --verbose flag and include its complete output.
 
 """
@@ -126,7 +126,7 @@ class Utils:
     def seperate_url(url: str):
         result = url.split('/')
         return result[len(result)-1]
-        
+
     def make_copy_file(files: list):
         dest_file = files[0]
         for i in range(1, len(files)):
@@ -141,7 +141,7 @@ class Utils:
     async def deselect_checkbox(checkbox:customtkinter.CTkCheckBox):
         """ select one checkbox of list of songs """
         checkbox.deselect()
-    
+
     @staticmethod
     async def select_checkbox(checkbox:customtkinter.CTkCheckBox):
         """ deselect one checkbox of list of songs """
@@ -151,7 +151,7 @@ class Utils:
     def copy_paste_text(view, text: str):
         view.clipboard_clear()
         view.clipboard_append(text)
-    	
+
     @staticmethod
     async def mp3_to_wav(file: str):
         """ convert a mp3 song to wav  """
@@ -165,13 +165,13 @@ class Utils:
         try:
             if os.path.isdir(path + 'fichier-wav'):
                 sound.export(
-                    path + 'fichier-wav' + '/' + filename + '.wav', 
+                    path + 'fichier-wav' + '/' + filename + '.wav',
                     format='wav'
                 )
             else:
                 os.mkdir(path + 'fichier-wav')
                 sound.export(
-                    path + 'fichier-wav' + '/' + filename + '.wav', 
+                    path + 'fichier-wav' + '/' + filename + '.wav',
                     format='wav'
                 )
         except Exception as error:
