@@ -176,3 +176,53 @@ class Utils:
                 )
         except Exception as error:
             raise error
+
+    @staticmethod
+    def print_day(num:int) -> str:
+        day:str = None
+        if num == 1:
+            day = "lundi"
+        elif num == 2:
+            day = "mardi"
+        elif num == 3:
+            day = "mercredi"
+        elif num == 4:
+            day = "jeudi"
+        elif num == 5:
+            day = "vendredi"
+        elif num == 6:
+            day = "samedi"
+        elif num == 7:
+            day = "dimanche"
+
+        return day
+
+    @staticmethod
+    def print_month(num:int) -> str:
+        day:str = None
+        if num == 1:
+            day = "Janvier"
+        elif num == 2:
+            day = "Fevrier"
+        elif num == 3:
+            day = "Mars"
+        elif num == 4:
+            day = "Avril"
+        elif num == 5:
+            day = "Mai"
+        elif num == 6:
+            day = "Juin"
+        elif num == 7:
+            day = "Juillet"
+        elif num == 8:
+            day = "Aout"
+        elif num == 9:
+            day = "Septembre"
+        elif num == 10:
+            day = "Octobre"
+        elif num == 11:
+            day = "Novembre"
+        elif num == 12:
+            day = "Decembre"
+
+        return day

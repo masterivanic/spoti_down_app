@@ -27,6 +27,7 @@ update_last_user_login = """ UPDATE users SET last_login = ?  WHERE id = ? """
 update_user_active = """ UPDATE users SET is_active = ?  WHERE id = ? """
 
 delete_user = """ DELETE FROM users WHERE id = ? """
+all([1,7])
 
 
 class DatabaseConnection:
@@ -81,7 +82,6 @@ class UserRepository:
         cur.execute(user_by_mail, (email,))
         self.database.conn.commit()
         rows = cur.fetchone()
-        # self.database.close_connection()
         return rows
 
     def get_all_users(self):
@@ -91,7 +91,6 @@ class UserRepository:
         cur.execute(users_list)
         self.database.conn.commit()
         rows = cur.fetchall()
-        # self.database.close_connection()
         return rows
 
     def is_user_exists():
@@ -103,7 +102,6 @@ class UserRepository:
         cur = self.database.conn.cursor()
         cur.execute(insert_user, args)
         self.database.conn.commit()
-        # self.database.close_connection()
 
     def update_user_last_login(self, user_id, last_login):
         """update user last login"""
@@ -111,7 +109,6 @@ class UserRepository:
         cur = self.database.conn.cursor()
         cur.execute(update_last_user_login, (last_login, user_id))
         self.database.conn.commit()
-        # self.database.close_connection()
 
     def update_user_is_active(self, user_id, active_num):
         """update user last login"""
@@ -119,7 +116,6 @@ class UserRepository:
         cur = self.database.conn.cursor()
         cur.execute(update_user_active, (active_num, user_id))
         self.database.conn.commit()
-        # self.database.close_connection()
 
     def delete_user(self, user_id):
         """update user last login"""
@@ -127,7 +123,6 @@ class UserRepository:
         cur = self.database.conn.cursor()
         cur.execute(delete_user, (user_id,))
         self.database.conn.commit()
-        # self.database.close_connection()
 
 
 if __name__ == "__main__":

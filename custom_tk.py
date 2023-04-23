@@ -15,6 +15,7 @@ from controller import Controller
 from settings import settings
 from spotify import APIConfig
 from spotify import SpotifyCustomer
+from utils import Utils
 
 # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_appearance_mode("System")
@@ -23,6 +24,8 @@ customtkinter.set_default_color_theme("green")
 
 
 def get_api_configuration():
+    """ spotify api keys """
+
     conf = APIConfig
     conf.SPOTIFY_CLIENT_ID = settings.SPOTIFY_CLIENT_ID
     conf.USER_ID = settings.USER_ID
@@ -31,6 +34,16 @@ def get_api_configuration():
     conf.scopes = settings.scopes
     return conf
 
+def get_date():
+
+    month = datetime.today().month
+    day = datetime.today().day
+    year = datetime.today().year
+
+    date =f"Le {day}, {Utils.print_month(month)} {year}"
+    current_date = date + " " + datetime.today().strftime("%H:%M:%S")
+    return current_date
+
 
 class App(customtkinter.CTk):
     """main application interface"""
@@ -38,13 +51,13 @@ class App(customtkinter.CTk):
     GLIPH_ICON_WIDTH = 40
     GLIPH_ICON_HEIGHT = 40
 
-    current_date = datetime.today().strftime("%d-%m-%Y")
-    logo = customtkinter.CTkImage(Image.open("images/logos.png"), size=(250, 145))
+    current_date = get_date()
+    logo = customtkinter.CTkImage(Image.open("images/logos.png"), size=(270, 145))
     logo_welcome = customtkinter.CTkImage(
-        Image.open("images/ekila-downaudio.jpg"), size=(879, 145)
+        Image.open("images/ekila-downaudio.jpg"), size=(859, 145)
     )
     pub_image = customtkinter.CTkImage(
-        Image.open("images/large_test_image.png"), size=(250, 100)
+        Image.open("images/phone.jpg"), size=(250, 110)
     )
 
     # button logo's
@@ -71,11 +84,11 @@ class App(customtkinter.CTk):
 
     conf = get_api_configuration()
 
-    def __init__(self, user_login):
+    def __init__(self):
         super().__init__()
 
         self.title("Ekila Downloader App")
-        self.user_login = user_login
+        # self.user_login = user_login
         self.geometry(f"{1129}x{675}")
         self.resizable(0, 0)
         self.grid_rowconfigure(6, weight=2)
@@ -119,10 +132,10 @@ class App(customtkinter.CTk):
     def sidebar(self):
         """Setup side bar of the application"""
 
-        self.sidebar_frame = customtkinter.CTkFrame(self, corner_radius=0, width=250)
+        self.sidebar_frame = customtkinter.CTkFrame(self, corner_radius=0, width=250, height=420)
         self.sidebar_frame.grid(row=2, column=0, sticky="w")
         self.tabview = customtkinter.CTkTabview(self.sidebar_frame, width=250)
-        self.tabview.grid(row=2, column=0)
+        self.tabview.grid(row=2, column=0, padx=10)
         self.tabview.add("Actualités")
         self.tabview.add("Communiqués")
 
@@ -137,9 +150,9 @@ class App(customtkinter.CTk):
         )
         self.appearance_mode_optionemenu.grid(row=6, column=0, padx=20, pady=(10, 10))
         self.pub = customtkinter.CTkLabel(
-            self.sidebar_frame, text="", width=250, image=self.pub_image
+            self.sidebar_frame, text="", width=250,height=110, image=self.pub_image
         )
-        self.pub.grid(row=7, column=0)
+        self.pub.grid(row=7, column=0, padx=5)
 
     def menu_bar(self):
         """Setup menu bar of the application"""
@@ -183,24 +196,31 @@ class App(customtkinter.CTk):
         )
         self.title_dash.grid(row=0, column=1, pady=10, sticky="news")
 
+
+    def change_time(self):
+        self.current_date = get_date()
+        self.date_label.configure(text=self.current_date)
+        self.after(200, self.change_time)
+
     def header(self):
         """define the header of the application"""
 
-        self.user_label = customtkinter.CTkLabel(master=self, text=f"{self.user_login}")
+        self.user_label = customtkinter.CTkLabel(master=self, text=f"")
         self.user_label.grid(row=0, column=0, sticky="nw", padx=2)
         self.date_label = customtkinter.CTkLabel(master=self, text=self.current_date)
-        self.date_label.grid(row=0, column=1, ipadx=20, padx=50, sticky="e")
+        self.date_label.grid(row=0, column=1, padx=90, sticky="e")
 
         self.logo_container = customtkinter.CTkFrame(self, corner_radius=0, width=1129)
         self.logo_container.grid(row=1, column=0, columnspan=2, sticky="nsew")
         self.logo_label = customtkinter.CTkLabel(
-            self.logo_container, text="", height=145, image=self.logo, width=250
+            self.logo_container, text="", height=145, image=self.logo, width=270
         )
         self.logo_label.grid(row=1, column=0)
         self.panel_logo_label = customtkinter.CTkLabel(
-            self.logo_container, text="", width=879, height=145, image=self.logo_welcome
+            self.logo_container, text="", width=859, height=145, image=self.logo_welcome
         )
-        self.panel_logo_label.grid(row=1, column=1, padx=0)
+        self.panel_logo_label.grid(row=1, column=2)
+        self.change_time()
 
     def extrat_csv_son_panel(self):
         """main dashboard interface for read csv file"""
@@ -436,6 +456,7 @@ class App(customtkinter.CTk):
             text_color=("black", "#000000"),
             text="Recherche",
             image=self.search_image,
+            fg_color = ("white", "white"),
             height=60,
             font=customtkinter.CTkFont(size=12, weight="bold"),
             command=lambda: self.paginate("Recherche"),
@@ -447,6 +468,7 @@ class App(customtkinter.CTk):
             text_color=("black", "#000000"),
             text="Transfert",
             image=self.transfert_image,
+            fg_color = ("white", "white"),
             height=60,
             font=customtkinter.CTkFont(size=12, weight="bold"),
             command=lambda: self.paginate("Transfert"),
@@ -458,6 +480,7 @@ class App(customtkinter.CTk):
             text_color=("black", "#000000"),
             text="Télécharger",
             image=self.download_image,
+            fg_color = ("white", "white"),
             height=60,
             font=customtkinter.CTkFont(size=12, weight="bold"),
             command=lambda: self.paginate("Télécharger"),
@@ -469,6 +492,7 @@ class App(customtkinter.CTk):
             text_color=("black", "#000000"),
             text="Conversion",
             image=self.convert_image,
+            fg_color = ("white", "white"),
             height=60,
             font=customtkinter.CTkFont(size=12, weight="bold"),
             command=lambda: self.paginate("Conversion"),
@@ -480,6 +504,7 @@ class App(customtkinter.CTk):
             text_color=("black", "#000000"),
             text="Quitter",
             image=self.quit_image,
+            fg_color = ("white", "white"),
             height=60,
             font=customtkinter.CTkFont(size=12, weight="bold"),
             command=self.quit,
@@ -500,16 +525,36 @@ class App(customtkinter.CTk):
     def paginate(self, text):
         if text == "Transfert":
             self.transfert_son_panel()
+            self.transfert_button.configure(fg_color = ("green", "green"))
+            self.search_button.configure(fg_color = ("white", "white"))
+            self.download_button.configure(fg_color = ("white", "white"))
+            self.convert_button.configure(fg_color = ("white", "white"))
             with ThreadPool() as pool:
                 pool.apply_async(
                     asyncio.run, (self.controller.checkbox_playlist_output(),)
                 )
                 asyncio.run(self.controller.song_panel())
+
+
         elif text == "Télécharger":
+            self.transfert_button.configure(fg_color = ("white", "white"))
+            self.search_button.configure(fg_color = ("white", "white"))
+            self.download_button.configure(fg_color = ("green", "green"))
+            self.convert_button.configure(fg_color = ("white", "white"))
             self.download_son_panel()
+
         elif text == "Conversion":
+            self.search_button.configure(fg_color = ("white", "white"))
+            self.transfert_button.configure(fg_color = ("white", "white"))
+            self.download_button.configure(fg_color = ("white", "white"))
+            self.convert_button.configure(fg_color = ("green", "green"))
             self.conversion_son_panel()
+
         elif text == "Recherche":
+            self.search_button.configure(fg_color = ("green", "green"))
+            self.transfert_button.configure(fg_color = ("white", "white"))
+            self.download_button.configure(fg_color = ("white", "white"))
+            self.convert_button.configure(fg_color = ("white", "white"))
             self.extrat_csv_son_panel()
 
     def open_input_dialog_event(self):
