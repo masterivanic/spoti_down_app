@@ -62,6 +62,7 @@ class AuthForm(customtkinter.CTk):
         try:
             self.register_button.grid_forget()
             self.login_button.grid_forget()
+            self.checkbox.grid_forget()
             if self.label_error: self.label_error.grid_forget()
         except Exception as err:
             raise err
@@ -75,6 +76,7 @@ class AuthForm(customtkinter.CTk):
         self.password_entry.grid_forget()
         self.register_button.grid_forget()
         self.go_back_button.grid_forget()
+        self.checkbox.grid_forget()
         self.login_form()
         if self.label_error: self.label_error.grid_forget()
 
@@ -88,7 +90,6 @@ class AuthForm(customtkinter.CTk):
             self,
             width=250,
             corner_radius=2,
-            placeholder_text="admin@gmail.com",
             textvariable=self.email_value,
         )
         self.email_entry.grid(row=1, column=2, sticky=tk.W,  pady=1)
@@ -109,6 +110,10 @@ class AuthForm(customtkinter.CTk):
         )
         self.password_entry.grid(row=2, column=2, sticky=tk.W, pady=10)
 
+        self.check_var = customtkinter.StringVar()
+        self.checkbox = customtkinter.CTkCheckBox(self, text="",  variable=self.check_var, command=self.checkbox_event, onvalue="on", offvalue="off")
+        self.checkbox.grid(row=2, column=3)
+
         self.login_button = customtkinter.CTkButton(
             self,
             corner_radius=2,
@@ -128,6 +133,12 @@ class AuthForm(customtkinter.CTk):
             command=self.register_form
         )
         self.register_button.grid(row=4, column=1, pady=5, padx=10)
+
+    def checkbox_event(self):
+        if self.check_var.get() == "on":
+            self.password_entry.configure(show='')
+        else:
+            self.password_entry.configure(show='*')
 
     def register_form(self):
 
@@ -206,6 +217,7 @@ class AuthForm(customtkinter.CTk):
                     password = password
                 )
                 is_login = self.controller.user_login(user)
+                print(is_login)
                 if is_login == None:
                     showwarning("Warning", "Utilisateur n'existe pas")
                 elif is_login == True:

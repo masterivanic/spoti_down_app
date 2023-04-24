@@ -38,9 +38,7 @@ class UserController:
         user_found = self.user_repo.get_user_by_email(email=email)
         if user_found:
             decrypt_pass = SimpleEncryption(url=None)._decrypt_url(user_found[3])
-            if decrypt_pass == password:
-                is_login = True
-            is_login = False
+            is_login = True if decrypt_pass == password else False
         return is_login
 
     def update_user_last_login(self, email):
