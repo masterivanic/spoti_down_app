@@ -17,3 +17,5 @@ settings
 data.db
 output
 output-version2
+static/*
+data.json

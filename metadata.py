@@ -17,6 +17,10 @@ class MetaData:
         except KeyError:
             self._disc = "0"
         try:
+            self._genre = song_data["TAG"]["genre"]
+        except KeyError:
+            self._genre = "Unknow genre"
+        try:
             self._artist = song_data["TAG"]["artist"]
         except KeyError:
             self._artist = "Unknow artist"
@@ -24,6 +28,10 @@ class MetaData:
             self._album = song_data["TAG"]["album"]
         except KeyError:
             self._album = "Unknow artist"
+        try:
+            self._tsrc = song_data["TAG"]["TSRC"]
+        except KeyError:
+            self._tsrc = "Unknow isrc"
         try:
             self._album_artist = song_data["TAG"]["album_artist"]
         except KeyError:
@@ -50,12 +58,20 @@ class MetaData:
         return self._disc
 
     @property
+    def genre(self):
+        return self._genre
+
+    @property
     def artist(self):
         return self._artist
 
     @property
     def album(self):
         return self._album
+
+    @property
+    def isrc(self):
+        return self._tsrc
 
     @property
     def album_artist(self):
@@ -68,3 +84,11 @@ class MetaData:
     @property
     def date(self):
         return self._date
+
+
+    def __repr__(self) -> str:
+        return f"title: {self.title}\n num track:{self.num_track} \n disc:{self.disc} \n\
+            artist:{self.artist}\n album:{self.album} \n album artist:{self.album_artist}"
+
+    def __str__(self) -> str:
+        return f"{self.title}"
