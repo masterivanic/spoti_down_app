@@ -1,5 +1,7 @@
 import time
 from enum import Enum
+from typing import Any
+from typing import List
 
 import spotipy
 from spotipy.cache_handler import MemoryCacheHandler
@@ -25,7 +27,7 @@ class SpotifyUtils:
 
     @staticmethod
     def __pack_playlist(playlist, is_playlist_panel: bool = False) -> list:
-        tracks = []
+        tracks:List[Any] = []
         tracks_temp = [track["track"] for track in playlist["tracks"] if track]
         for track_data in tracks_temp:
             if track_data:
@@ -38,18 +40,6 @@ class SpotifyUtils:
                         {playlist['owner']['display_name']}"
                     tracks.append(Track(track_data))
         return tracks
-
-        # for track in playlist['tracks']:
-        #     if track is not None:
-        #         track_data = track['track']
-        #         if track_data is not None:
-        #             if is_playlist_panel:
-        #                 tracks.append(TrackDto(track_data))
-        #             else:
-        #                 track_data['playlist'] = f"{playlist['name']} - \
-        #                     {playlist['owner']['display_name']}"
-        #                 tracks.append(Track(track_data))
-        # return tracks
 
 
 class APIConfig(Enum):
@@ -79,11 +69,11 @@ class SpotifyCustomer:
             scope=config.scopes,
             cache_handler=None,
         )
-        self.sp_utils = SpotifyUtils()
-        self.rest_cache = CacheFileHandler(cache_path=None, username=None)
+        self.sp_utils:SpotifyUtils = SpotifyUtils()
+        self.rest_cache:CacheFileHandler = CacheFileHandler(cache_path=None, username=None)
 
-        token_info = self.auth_manager.get_access_token()
-        self.user_id = config.USER_ID
+        token_info:dict = self.auth_manager.get_access_token()
+        self.user_id:str = config.USER_ID
 
         if isinstance(token_info, dict):
             self.auth_manager.cache_handler = MemoryCacheHandler(token_info=token_info)
@@ -103,7 +93,7 @@ class SpotifyCustomer:
         except Exception as error:
             raise error
 
-    def get_playlist_from_api(self):
+    def get_playlist_from_api(self) -> list:
         try:
             if not self.is_token_expired():
                 user_playlist = []
@@ -139,7 +129,7 @@ class SpotifyCustomer:
         except Exception:
             return []
 
-    def get_specific_albums_tracks(self, album_id) -> any:
+    def get_specific_albums_tracks(self, album_id) -> Any:
         if not self.is_token_expired():
             albums = self.client.album_tracks(album_id, limit=50, offset=0, market=None)
             return albums
@@ -168,14 +158,14 @@ class SpotifyCustomer:
                 if name not in seen:
                     seen.add(name)
 
-    def get_current_user(self) -> any:
+    def get_current_user(self) -> Any:
         try:
             current_user = self.client.current_user()
             return current_user
         except Exception as err:
             raise err
 
-    def get_user(self) -> any:
+    def get_user(self) -> Any:
         user = self.client.user(self.user_id)
         if user is not None:
             return user
@@ -200,7 +190,7 @@ class SpotifyCustomer:
                     song["tracks"]["items"][0]["artists"][0]["name"],
                     song["tracks"]["items"][0]["name"],
                 )
-            except Exception:
+            except KeyError:
                 pass
         return None, None, None
 
@@ -273,7 +263,7 @@ class SpotifyCustomer:
 
     def is_song_exist(self, playlist_title: str, song_uri: str) -> bool:
         track, exist = self.is_playlist_exist(playlist_title)
-        is_uri = False
+        is_uri:bool = False
         if track["name"] == playlist_title:
             items = self.client.playlist(
                 playlist_id=track["id"], additional_types=("track",)
@@ -291,7 +281,7 @@ class SpotifyCustomer:
                 self.client.playlist_add_items(track["id"], tracks)
 
     async def send_one_song_to_playlist(self, song_uri: str, playlist_title):
-        tab_song = []
+        tab_song:List[str] = []
         tab_song.append(song_uri)
         try:
             if playlist_title is not None:

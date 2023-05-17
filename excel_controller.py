@@ -1,7 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
 
-import eyed3
 import openpyxl
 from pydub.utils import mediainfo
 
@@ -48,6 +47,9 @@ class ExcelFileHandler(ExcelUtils):
         if dir_path.endswith('.mp3'):
             media_data = mediainfo(dir_path)
         return media_data
+
+    def wrte_in_xlsx_file(self):
+        pass
 
     def read_xlsx_file(self, file_dir:str) -> None:
         workbook = openpyxl.load_workbook(file_dir)

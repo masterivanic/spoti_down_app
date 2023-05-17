@@ -85,10 +85,41 @@ class MetaData:
     def date(self):
         return self._date
 
-
     def __repr__(self) -> str:
         return f"title: {self.title}\n num track:{self.num_track} \n disc:{self.disc} \n\
             artist:{self.artist}\n album:{self.album} \n album artist:{self.album_artist}"
 
     def __str__(self) -> str:
         return f"{self.title}"
+
+class XlsMeta:
+
+    def __init__(self, song_metada:MetaData) -> None:
+        self._song_metadata = song_metada
+
+        if self._song_metadata:
+            self.track_number = 0
+            self.track_title = self._song_metadata.title
+            self.subtitle = ""
+            self.cd_number = self._song_metadata.disc
+            self.release_title = self._song_metadata.title
+            self.label = ""
+            self.production_year = ""
+            self.production_owner = ""
+            self.copyright_owner = ""
+            self.genre = self._song_metadata.genre
+            self.sub_genre = ""
+            self.tracktype = ""
+            self.lyrics_language = ""
+            self.title_language = "FRENCH"
+            self.parental_advisory = "NO"
+            self.territorie_deliver = ""
+            self.release_price_tier =""
+            self.track_price_tier = ""
+            self.digital_release_date =  "NO"
+            self.simple_start_index = ""
+            self.isrc = self._song_metadata.isrc
+            self.upc_code = ""
+            self.ean_code = ""
+            self.grid = ""
+            self.release_catalog = ""
