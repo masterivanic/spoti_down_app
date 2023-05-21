@@ -7,6 +7,7 @@ from multiprocessing.pool import ThreadPool
 from pathlib import Path
 from tkinter.filedialog import askdirectory
 from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import askopenfilenames
 from tkinter.messagebox import askyesno
 from tkinter.messagebox import showinfo
 from tkinter.messagebox import showwarning
@@ -17,6 +18,7 @@ from crypto import SimpleEncryption
 from downloader import Downloader
 from exceptions import ComponentError
 from exceptions import SongError
+from settings.settings import LoadingState as load
 from spotify import SpotifyCustomer
 from type import Format
 from type import Quality
@@ -32,6 +34,7 @@ class Controller:
         self.view = view
         self.sp_client = sp_client
         self.search_songs = []
+        self.loading_state = None
 
     def create_playlist(self, playlist_name):
         """permit a user to create a playlist"""
@@ -57,7 +60,7 @@ class Controller:
             raise error
 
     async def check_song_exist_in_playlist(self, song_uri: str, playlist_title: str):
-        """ check if a song exist in a playlist  """
+        """check if a song exist in a playlist"""
 
         return (
             self.sp_client.is_song_exist(playlist_title, song_uri),
@@ -90,9 +93,14 @@ class Controller:
         """get csv file path"""
 
         filetypes = (("csv files", "*.csv"), ("All files", "*.csv"))
-        file_path = askopenfilename(
-            title="ouvrir un fichier", filetypes=filetypes)
+        file_path = askopenfilename(title="ouvrir un fichier", filetypes=filetypes)
         return file_path
+
+    def open_many_file(self):
+        filetypes = (("csv files", "*.csv"), ("All files", "*.csv"))
+        file_path = askopenfilenames(title="ouvrir un fichier", filetypes=filetypes)
+        file_list = [file for file in file_path]
+        return " ; ".join(file_path), file_list
 
     def open_file_mp3(self):
         """get mp3 file path"""
@@ -106,8 +114,7 @@ class Controller:
     async def read_sng(self, query: str):
         """search a song on spotify and return song link"""
 
-        spotify_link, artist_name, song_title = self.sp_client.search_song(
-            query)
+        spotify_link, artist_name, song_title = self.sp_client.search_song(query)
         if query is None or spotify_link is None:
             pass
         else:
@@ -136,8 +143,7 @@ class Controller:
                     await self.read_sng(song)
                     if self.view.textbox_csv:
                         self.view.textbox_csv.insert(
-                            tkinter.INSERT, "\t" +
-                            str(count) + ". " + song + "\n"
+                            tkinter.INSERT, "\t" + str(count) + ". " + song + "\n"
                         )
                         self.view.update()
                         self.view.progressbar.start()
@@ -151,6 +157,16 @@ class Controller:
             self.initialise_entry()
         else:
             showwarning("message", "Veuillez choisir un fichier!")
+
+    async def run_async_pool(self, file_list: list):
+        if len(file_list) > 0:
+            if len(file_list) == 1:
+                await self.read_unique_file(file_list[0])
+            elif len(file_list) >= 2:
+                file = Utils.make_copy_file(file_list)
+                await self.read_unique_file(file)
+        else:
+            showwarning("Attention", "Veuillez choisir un fichier csv!")
 
     def initialise_entry(self):
         """initialise csv entries"""
@@ -197,8 +213,7 @@ class Controller:
                 onvalue=songs["song_link"],
                 offvalue="off",
             )
-            checkbox.grid(row=index + 1, column=0,
-                          pady=(0, 10), sticky="nw", padx=30)
+            checkbox.grid(row=index + 1, column=0, pady=(0, 10), sticky="nw", padx=30)
             self.scrollable_frame_switches.append(checkbox)
         except Exception as error:
             raise error
@@ -207,15 +222,22 @@ class Controller:
         self.items_selected = []
         self.current_header_state = self.check_var.get()
 
-        if self.current_header_state == "on":
-            for checkbox in self.scrollable_frame_switches:
-                await Utils.select_checkbox(checkbox)
-                self.items_selected.append(self.checkbox_value.get())
-                self.view.update()
-        elif self.current_header_state == "off":
-            for checkbox in self.scrollable_frame_switches:
-                await Utils.deselect_checkbox(checkbox)
-                self.view.update()
+        try:
+            if self.current_header_state == "on":
+                for checkbox in self.scrollable_frame_switches:
+                    await Utils.select_checkbox(checkbox)
+                    self.items_selected.append(self.checkbox_value.get())
+                    self.view.update()
+                    self.loading_state = load.LOADING.value
+                self.loading_state = load.STOP.value
+            elif self.current_header_state == "off":
+                for checkbox in self.scrollable_frame_switches:
+                    await Utils.deselect_checkbox(checkbox)
+                    self.view.update()
+                    self.loading_state = load.LOADING.value
+                self.loading_state = load.STOP.value
+        except RuntimeError:
+            raise Exception("Entendez la fin du chargement des sons")
 
     def select_checkboxes(self):
         asyncio.run(self.select_and_deselect())
@@ -279,52 +301,79 @@ class Controller:
         """ make an algo for avoid duplicate song in playlist  """
 
         try:
-            if len(self.items_selected) > 0:
-                if playlist_name:
-                    self.view.progressbar.configure(determinate_speed=1)
-                    for song in self.items_selected:
-                        is_exist, song_url = await self.check_song_exist_in_playlist(song, playlist_name)
-                        if not is_exist:
-                            self.view.progressbar.start()
-                            self.view.progressbar.stop()
-                            await self.sp_client.send_one_song_to_playlist(
-                                song_uri=song_url, playlist_title=playlist_name
+            if self.loading_state == load.STOP.value:
+                if len(self.items_selected) > 0:
+                    if playlist_name:
+                        self.view.progressbar.configure(determinate_speed=1)
+                        for song in self.items_selected:
+                            (
+                                is_exist,
+                                song_url,
+                            ) = await self.check_song_exist_in_playlist(
+                                song, playlist_name
                             )
-                            self.view.update()
-                            progress = 1 / len(self.items_selected) + progress
-                            self.view.progressbar.set(progress)
-                        else:
-                            self.view.progressbar.start()
-                            self.view.progressbar.stop()
-                            self.view.update()
-                            progress = 1 / len(self.items_selected) + progress
-                            self.view.progressbar.set(progress)
+                            if not is_exist:
+                                self.view.progressbar.start()
+                                self.view.progressbar.stop()
+                                await self.sp_client.send_one_song_to_playlist(
+                                    song_uri=song_url, playlist_title=playlist_name
+                                )
+                                self.view.update()
+                                progress = 1 / len(self.items_selected) + progress
+                                self.view.progressbar.set(progress)
+                            else:
+                                self.view.progressbar.start()
+                                self.view.progressbar.stop()
+                                self.view.update()
+                                progress = 1 / len(self.items_selected) + progress
+                                self.view.progressbar.set(progress)
 
-                    self.view.progressbar.stop()
-                    self.view.progressbar.set(0)
-                    self.copy_link()
-                    showinfo("Success", f"transfert terminée")
-                    await Utils.deselect_checkbox(self.header)
-                    for checkbox in self.scrollable_frame_switches:
-                        await Utils.deselect_checkbox(checkbox)
-                        self.view.update()
+                        self.view.progressbar.stop()
+                        self.view.progressbar.set(0)
+                        self.copy_link()
+                        showinfo("Success", f"transfert terminée")
+                        self.header.deselect()
+                        for checkbox in self.scrollable_frame_switches:
+                            await Utils.deselect_checkbox(checkbox)
+                            self.view.update()
+                    else:
+                        showwarning("Warning", "Choisir une playlist")
                 else:
-                    showwarning("Warning", "Choisir une playlist")
-            else:
-                showwarning("Warning", "Choisir tous les sons")
+                    showwarning("Warning", "Choisir tous les sons")
+
+            elif self.loading_state == load.LOADING.value:
+                showwarning(
+                    "Warning",
+                    "transfert impossible veuillez attendre le chargement des sons",
+                )
 
         except Exception as error:
             raise error
 
-    async def download_one_song(self, url):
+    def download_one_song(self, url):
         downloader = Downloader(
             sp_client=self.sp_client,
             quality=Quality.BEST,
             download_format=Format.MP3,
-            path_holder=PathHolder(
-                downloads_path=os.getcwd() + "/EkilaDownloader"),
+            path_holder=PathHolder(downloads_path=os.getcwd() + "/EkilaDownloader"),
         )
-        downloader.download(query=url)
+        downloader.call_download(query=url)
+        showinfo("Info", "Tous les fichiers téléchargés avec succès")
+
+    def download_song(self, url_crypte) -> None:
+        from multiprocessing.pool import ThreadPool
+
+        if (
+            self.SPOTIFY_PLAYLIST_URI in url_crypte
+            or self.SPOTIFY_TRACK_URI in url_crypte
+        ):
+            decrypt_word = url_crypte
+        else:
+            decrypt_word = SimpleEncryption(url=None)._decrypt_url(url_crypte)
+        self.initialise_down_entry()
+        with ThreadPool() as pool:
+            pool.apply_async(self.download_one_song, (decrypt_word,))
+            print()
 
     def initialise_down_entry(self):
         try:
@@ -339,13 +388,11 @@ class Controller:
             tab = down_path.split("/")
             playlist_id = tab[len(tab) - 1]
         else:
-            playlist_url = SimpleEncryption(
-                url=None)._decrypt_url(down_path).split("/")
+            playlist_url = SimpleEncryption(url=None)._decrypt_url(down_path).split("/")
             playlist_id = playlist_url[len(playlist_url) - 1]
 
         try:
-            value = self.sp_client._get_playlist_tracks(
-                playlist_id=playlist_id)
+            value = self.sp_client._get_playlist_tracks(playlist_id=playlist_id)
             tracks = [track.url for track in value]
             if len(tracks) > 0:
                 self.initialise_down_entry()

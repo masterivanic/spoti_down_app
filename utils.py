@@ -68,6 +68,12 @@ def copy_csv_to_another(source_file, dest_file):
             else:
                 csvwriter.writerow(row)
 
+def make_copy_file(files: list):
+    dest_file = files[0]
+    for i in range(1, len(files)):
+        copy_csv_to_another(source_file=files[i], dest_file=dest_file)
+    return dest_file
+
 class PathHolder:
 
     def __init__(self, data_path: str = None, downloads_path: str = None):
