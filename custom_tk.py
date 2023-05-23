@@ -56,7 +56,7 @@ class App(customtkinter.CTk):
     logo_welcome = customtkinter.CTkImage(
         Image.open("images/ekila-downaudio.jpg"), size=(859, 145)
     )
-    pub_image = customtkinter.CTkImage(Image.open("images/phone.jpg"), size=(250, 110))
+    pub_image = customtkinter.CTkImage(Image.open("images/phone.jpg"), size=(250, 114))
 
     # button logo's
     search_image = customtkinter.CTkImage(
@@ -83,11 +83,11 @@ class App(customtkinter.CTk):
     conf = get_api_configuration()
     list_file:list = []
 
-    def __init__(self):
+    def __init__(self, user_login):
         super().__init__()
 
         self.title("Ekila Downloader App")
-        # self.user_login = user_login
+        self.user_login = user_login
         self.geometry(f"{1129}x{675}")
         self.resizable(0, 0)
         self.grid_rowconfigure(6, weight=2)
@@ -129,6 +129,16 @@ class App(customtkinter.CTk):
                 self.csv_entry.delete(0, tkinter.END)
             self.csv_entry.insert(0, str(path))
 
+    def get_song_path(self):
+        """get song file path and insert in entry"""
+
+        song_path = self.controller.open_file_mp3()
+        if self.convert_entry:
+            if self.convert_entry.get() != "":
+                self.son_path_entry.delete(0, tkinter.END)
+            self.son_path_entry.insert(0, str(song_path))
+
+
     def sidebar(self):
         """Setup side bar of the application"""
 
@@ -169,7 +179,7 @@ class App(customtkinter.CTk):
         menu_bar.add_cascade(label="Aide", menu=menu_help)
 
         menu_file.add_cascade(label="Ouvrir un fichier csv", command=self.get_path_file)
-        menu_file.add_cascade(label="Ouvrir un fichier audio", command=None)
+        menu_file.add_cascade(label="Ouvrir un fichier audio", command=self.get_song_path)
         menu_file.add_cascade(
             label="Ouvrir un dossier contenant les sons",
             command=self.controller.open_song_folder,
@@ -206,7 +216,7 @@ class App(customtkinter.CTk):
     def header(self):
         """define the header of the application"""
 
-        self.user_label = customtkinter.CTkLabel(master=self, text=f"vous est connecté")
+        self.user_label = customtkinter.CTkLabel(master=self, text=f"{self.user_login} est connecté")
         self.user_label.grid(row=0, column=0, sticky="nw", padx=2)
         self.date_label = customtkinter.CTkLabel(master=self, text=self.current_date)
         self.date_label.grid(row=0, column=1, padx=90, sticky="e")
@@ -409,6 +419,7 @@ class App(customtkinter.CTk):
             border_width=2,
             text_color=("white", "#ffffff"),
             text="Metadata",
+            command=lambda: self.controller.write_metadata_in_xls_file(self.convert_entry.get()),
         )
 
         self.convert_sons_button = customtkinter.CTkButton(
@@ -439,12 +450,12 @@ class App(customtkinter.CTk):
     def download_songs(self, link: str):
         with ThreadPool() as pool:
             pool.apply_async(self.execute_download_thread, (link,))
-            print("--- action 2 ---")
+            print()
 
     def convert_mp3_to_wav(self, folder_path):
         with ThreadPool() as pool:
             pool.apply_async(self.execute_thread, (folder_path,))
-            print("--- action 2 ---")
+            print()
 
     def button_list(self):
         """all pagination button for application"""

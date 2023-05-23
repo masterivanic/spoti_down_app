@@ -1,8 +1,11 @@
 class MetaData:
-    """ define song metadata models """
+    """define song metadata models"""
 
-    def __init__(self, song_data:dict) -> None:
-        self.song_data = song_data
+    def __init__(self, song_data: dict) -> None:
+        if isinstance(song_data, dict):
+            self.song_data = song_data
+        else:
+            raise Exception(f"song_data param {song_data} is not a dict ")
 
         try:
             self._title = song_data["TAG"]["title"]
@@ -92,9 +95,9 @@ class MetaData:
     def __str__(self) -> str:
         return f"{self.title}"
 
-class XlsMeta:
 
-    def __init__(self, song_metada:MetaData) -> None:
+class XlsMeta:
+    def __init__(self, song_metada: MetaData = None) -> None:
         self._song_metadata = song_metada
 
         if self._song_metadata:
@@ -103,10 +106,14 @@ class XlsMeta:
             self.subtitle = ""
             self.cd_number = self._song_metadata.disc
             self.release_title = self._song_metadata.title
-            self.label = ""
-            self.production_year = ""
-            self.production_owner = ""
-            self.copyright_owner = ""
+            self.label = self._song_metadata.artist
+            self.production_year = self._song_metadata.date
+            self.production_owner = self._song_metadata.publisher
+            self.copyright_owner = (
+                self._song_metadata.publisher
+                if self._song_metadata.publisher
+                else self._song_metadata.artist
+            )
             self.genre = self._song_metadata.genre
             self.sub_genre = ""
             self.tracktype = ""
@@ -114,12 +121,52 @@ class XlsMeta:
             self.title_language = "FRENCH"
             self.parental_advisory = "NO"
             self.territorie_deliver = ""
-            self.release_price_tier =""
+            self.release_price_tier = ""
             self.track_price_tier = ""
-            self.digital_release_date =  "NO"
+            self.digital_release_date = "NO"
+            self.physical_release_date = "Worldwide"
             self.simple_start_index = ""
             self.isrc = self._song_metadata.isrc
             self.upc_code = ""
             self.ean_code = ""
             self.grid = ""
-            self.release_catalog = ""
+            self.release_catalog_number = ""
+            self.track_catalog_number = ""
+            self.commercial_desc_en = ""
+            self.commercial_desc_fr = ""
+            self.commercial_desc_gr = ""
+            self.commercial_desc_it = ""
+            self.commercial_desc_sp = ""
+        else:
+            self.track_number = 0
+            self.track_title = None
+            self.subtitle = None
+            self.cd_number = None
+            self.release_title = None
+            self.label = None
+            self.production_year = None
+            self.production_owner = None
+            self.copyright_owner = None
+            self.genre = None
+            self.sub_genre = None
+            self.tracktype = None
+            self.lyrics_language = None
+            self.title_language = "FRENCH"
+            self.parental_advisory = "NO"
+            self.territorie_deliver = None
+            self.release_price_tier = None
+            self.track_price_tier = None
+            self.digital_release_date = "NO"
+            self.physical_release_date = "Worldwide"
+            self.simple_start_index = None
+            self.isrc = None
+            self.upc_code = None
+            self.ean_code = None
+            self.grid = None
+            self.release_catalog_number = None
+            self.track_catalog_number = None
+            self.commercial_desc_en = None
+            self.commercial_desc_fr = None
+            self.commercial_desc_gr = None
+            self.commercial_desc_it = None
+            self.commercial_desc_sp = None

@@ -298,16 +298,4 @@ class SpotifyCustomer:
 
 
 if __name__ == "__main__":
-    conf = APIConfig
-    conf.SPOTIFY_CLIENT_ID = settings.SPOTIFY_CLIENT_ID
-    conf.USER_ID = settings.USER_ID
-    conf.SPOTIPY_REDIRECT_URI = settings.SPOTIPY_REDIRECT_URI
-    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.SPOTIFY_CLIENT_SECRET_KEY
-    conf.scopes = settings.scopes
-
-    print(SpotifyCustomer(config=conf).get_user())
-    value = SpotifyCustomer(config=conf)._get_playlist_tracks(
-        playlist_id="1kr6NGO0dl0MCySVVaDOIU"
-    )
-    value = [track.url for track in value]
-    print(value)
+    pass

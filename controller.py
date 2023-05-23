@@ -16,6 +16,7 @@ import customtkinter
 
 from crypto import SimpleEncryption
 from downloader import Downloader
+from excel_controller import ExcelFileHandler
 from exceptions import ComponentError
 from exceptions import SongError
 from settings.settings import LoadingState as load
@@ -24,7 +25,6 @@ from type import Format
 from type import Quality
 from utils import PathHolder
 from utils import Utils
-
 
 class Controller:
     SPOTIFY_PLAYLIST_URI = "https://open.spotify.com/playlist/"
@@ -35,6 +35,7 @@ class Controller:
         self.sp_client = sp_client
         self.search_songs = []
         self.loading_state = None
+        self.excel_handler = ExcelFileHandler(file_dir="static/document_template.xltx")
 
     def create_playlist(self, playlist_name):
         """permit a user to create a playlist"""
@@ -459,3 +460,12 @@ class Controller:
                 showwarning("Warning", "Dossier vide")
         else:
             showwarning("Warning", "Choisir un dossier")
+
+    def write_metadata_in_xls_file(self, song_path:str) -> None:
+        if song_path and song_path.endswith('.mp3'):
+            data = self.excel_handler.get_file_metadata(song_path)
+            self.view.son_path_entry.delete(0, tkinter.END)
+            self.excel_handler.write_in_xlsx_file(data=data)
+            showinfo("Info", "Operation terminée")
+        # else:
+        #     showwarning("Warning", "Aucun fichier audio (mp3) choisit")
