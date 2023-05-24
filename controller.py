@@ -19,6 +19,7 @@ from downloader import Downloader
 from excel_controller import ExcelFileHandler
 from exceptions import ComponentError
 from exceptions import SongError
+from metadata import MetaData
 from settings.settings import LoadingState as load
 from spotify import SpotifyCustomer
 from type import Format
@@ -26,16 +27,21 @@ from type import Quality
 from utils import PathHolder
 from utils import Utils
 
+
 class Controller:
     SPOTIFY_PLAYLIST_URI = "https://open.spotify.com/playlist/"
     SPOTIFY_TRACK_URI = "https://open.spotify.com/track/"
+
+    num_track: int = 1
 
     def __init__(self, view, sp_client: SpotifyCustomer):
         self.view = view
         self.sp_client = sp_client
         self.search_songs = []
         self.loading_state = None
-        self.excel_handler = ExcelFileHandler(file_dir="static/document_template.xltx")
+        self.excel_handler = ExcelFileHandler(
+            file_dir="static/METADATA-NEW-TEMPLATE-EN.xlsx"
+        )
 
     def create_playlist(self, playlist_name):
         """permit a user to create a playlist"""
@@ -102,6 +108,12 @@ class Controller:
         file_path = askopenfilenames(title="ouvrir un fichier", filetypes=filetypes)
         file_list = [file for file in file_path]
         return " ; ".join(file_path), file_list
+
+    def open_many_mp3_file(self):
+        filetypes = (("mp3 files", "*.mp3"), ("All songs files", "*.mp3"))
+        file_path = askopenfilenames(title="Choisir vos sons", filetypes=filetypes)
+        file_list = [file for file in file_path]
+        return file_list
 
     def open_file_mp3(self):
         """get mp3 file path"""
@@ -461,11 +473,17 @@ class Controller:
         else:
             showwarning("Warning", "Choisir un dossier")
 
-    def write_metadata_in_xls_file(self, song_path:str) -> None:
-        if song_path and song_path.endswith('.mp3'):
-            data = self.excel_handler.get_file_metadata(song_path)
+    async def _write_metadata_in_xls_file(self, song_path: str) -> None:
+        if song_path and song_path.endswith(".mp3"):
+            data: MetaData = self.excel_handler.get_file_metadata(song_path)
+            data._num_track = self.num_track
             self.view.son_path_entry.delete(0, tkinter.END)
             self.excel_handler.write_in_xlsx_file(data=data)
-            showinfo("Info", "Operation terminée")
-        # else:
-        #     showwarning("Warning", "Aucun fichier audio (mp3) choisit")
+
+    async def write_many_metadata_in_xls_file(self, song_path: str) -> None:
+        all_songs: list[str] = song_path.split(";")
+        for song in all_songs:
+            await self._write_metadata_in_xls_file(song)
+            self.num_track += 1
+        self.num_track = 1
+        showinfo("Info", "Operation terminée")

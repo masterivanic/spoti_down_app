@@ -83,11 +83,11 @@ class App(customtkinter.CTk):
     conf = get_api_configuration()
     list_file:list = []
 
-    def __init__(self, user_login):
+    def __init__(self):
         super().__init__()
 
         self.title("Ekila Downloader App")
-        self.user_login = user_login
+        # self.user_login = user_login
         self.geometry(f"{1129}x{675}")
         self.resizable(0, 0)
         self.grid_rowconfigure(6, weight=2)
@@ -138,6 +138,15 @@ class App(customtkinter.CTk):
                 self.son_path_entry.delete(0, tkinter.END)
             self.son_path_entry.insert(0, str(song_path))
 
+    def get_many_song_path(self):
+        """get song files path and insert in entry"""
+
+        song_path = self.controller.open_many_mp3_file()
+        if self.convert_entry:
+            if self.convert_entry.get() != "":
+                self.son_path_entry.delete(0, tkinter.END)
+            self.son_path_entry.insert(0, ";".join(song_path))
+
 
     def sidebar(self):
         """Setup side bar of the application"""
@@ -179,7 +188,8 @@ class App(customtkinter.CTk):
         menu_bar.add_cascade(label="Aide", menu=menu_help)
 
         menu_file.add_cascade(label="Ouvrir un fichier csv", command=self.get_path_file)
-        menu_file.add_cascade(label="Ouvrir un fichier audio", command=self.get_song_path)
+        # menu_file.add_cascade(label="Ouvrir un fichier audio", command=self.get_song_path)
+        menu_file.add_cascade(label="Ouvrir vos fichiers audios", command=self.get_many_song_path)
         menu_file.add_cascade(
             label="Ouvrir un dossier contenant les sons",
             command=self.controller.open_song_folder,
@@ -216,7 +226,7 @@ class App(customtkinter.CTk):
     def header(self):
         """define the header of the application"""
 
-        self.user_label = customtkinter.CTkLabel(master=self, text=f"{self.user_login} est connecté")
+        self.user_label = customtkinter.CTkLabel(master=self, text=f"vous est connecté")
         self.user_label.grid(row=0, column=0, sticky="nw", padx=2)
         self.date_label = customtkinter.CTkLabel(master=self, text=self.current_date)
         self.date_label.grid(row=0, column=1, padx=90, sticky="e")
@@ -419,7 +429,7 @@ class App(customtkinter.CTk):
             border_width=2,
             text_color=("white", "#ffffff"),
             text="Metadata",
-            command=lambda: self.controller.write_metadata_in_xls_file(self.convert_entry.get()),
+            command=lambda: asyncio.run(self.controller.write_many_metadata_in_xls_file(self.convert_entry.get())),
         )
 
         self.convert_sons_button = customtkinter.CTkButton(

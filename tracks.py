@@ -1,5 +1,3 @@
-
-
 class TrackDto:
     def __init__(self, spotify_data):
         self._data = spotify_data
@@ -25,7 +23,7 @@ class TrackDto:
     @property
     def name(self):
         return self._name
-    
+
     @property
     def artists(self):
         return self._artists
@@ -84,6 +82,10 @@ class Track:
         except KeyError:
             self._playlist = ''
         try:
+            self._isrc = spotify_data['external_ids']['isrc']
+        except KeyError:
+            self._isrc = ''
+        try:
             self._cover_art_url = spotify_data['album']['images'][0]['url']
         except (KeyError, IndexError):
             self._cover_art_url = 'https://developer.spotify.com/assets/branding-guidelines/icon3@2x.png'
@@ -139,10 +141,15 @@ class Track:
     def playlist(self):
         return self._playlist
 
+    @property
+    def isrc(self):
+        return self._isrc
+
     def __repr__(self) -> str:
         return f'{self._id}\nName: {self._name}\nArtists: {self.artist_names}\nAlbum: {self._album_name}\n' \
                f'Release Date: {self._release_date}\nTrack: {self._track_number} / {self._album_track_count}\n' \
-               f'Disc: {self._disc_number}\nCover Art: {self._cover_art_url}\nLink: {self._url}\nUri: {self._uri}'
+               f'Disc: {self._disc_number}\nCover Art: {self._cover_art_url}\nLink: {self._url}\nUri: {self._uri}\n' \
+               f'isrc: {self.isrc}'
 
     def __str__(self):
         return f'{self.artist_names[0]} - {self._name}'

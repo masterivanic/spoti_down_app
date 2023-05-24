@@ -298,4 +298,11 @@ class SpotifyCustomer:
 
 
 if __name__ == "__main__":
-    pass
+    api:APIConfig = APIConfig
+    api.SPOTIFY_CLIENT_ID = settings.SPOTIFY_CLIENT_ID
+    api.SPOTIFY_CLIENT_SECRET_KEY = settings.SPOTIFY_CLIENT_SECRET_KEY
+    api.SPOTIPY_REDIRECT_URI = settings.SPOTIPY_REDIRECT_URI
+    api.USER_ID = settings.USER_ID
+    api.scopes = settings.scopes
+    sp= SpotifyCustomer(api)
+    print(sp.search("Fally Ipupa - Se Yo"))

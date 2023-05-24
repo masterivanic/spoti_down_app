@@ -150,6 +150,7 @@ class Downloader:
 
     def _download(self, track: Track) -> dict:
         status = {"track": track, "returncode": -1}
+        print(track)
 
         extractor = "ytsearch"
         query = f"{extractor}:{str(track)} audio"
@@ -204,6 +205,9 @@ class Downloader:
                 f"disc={track.disc_number}",
                 "-metadata",
                 f"track={track.track_number}/{track.album_track_count}",
+                "-metadata",
+                f"isrc={track.isrc}",
+
             ],
             **self.ydl_options,
         }

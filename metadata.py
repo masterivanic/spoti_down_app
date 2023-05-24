@@ -14,7 +14,7 @@ class MetaData:
         try:
             self._num_track = song_data["TAG"]["track"]
         except KeyError:
-            self._num_track = "0"
+            self._num_track = 0
         try:
             self._disc = song_data["TAG"]["disc"]
         except KeyError:
@@ -32,9 +32,9 @@ class MetaData:
         except KeyError:
             self._album = "Unknow artist"
         try:
-            self._tsrc = song_data["TAG"]["TSRC"]
+            self._tsrc = song_data["TAG"]["isrc"]
         except KeyError:
-            self._tsrc = "Unknow isrc"
+            self._tsrc = ""
         try:
             self._album_artist = song_data["TAG"]["album_artist"]
         except KeyError:
@@ -53,8 +53,12 @@ class MetaData:
         return self._title
 
     @property
-    def num_track(self):
+    def num_track(self) -> int:
         return self._num_track
+
+    @num_track.setter
+    def num_track(self, num_track: int):
+        self._num_track = num_track
 
     @property
     def disc(self):
@@ -101,7 +105,7 @@ class XlsMeta:
         self._song_metadata = song_metada
 
         if self._song_metadata:
-            self.track_number = 0
+            self.track_number = self._song_metadata.num_track
             self.track_title = self._song_metadata.title
             self.subtitle = ""
             self.cd_number = self._song_metadata.disc
