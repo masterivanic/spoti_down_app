@@ -19,3 +19,5 @@ output
 output-version2
 static/*
 data.json
+.vscode/*
+.pytest_cache/*
