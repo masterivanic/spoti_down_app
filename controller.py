@@ -486,4 +486,5 @@ class Controller:
             await self._write_metadata_in_xls_file(song)
             self.num_track += 1
         self.num_track = 1
+        self.excel_handler.save_file()
         showinfo("Info", "Operation terminée")

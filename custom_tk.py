@@ -83,11 +83,11 @@ class App(customtkinter.CTk):
     conf = get_api_configuration()
     list_file:list = []
 
-    def __init__(self):
+    def __init__(self, user_login):
         super().__init__()
 
         self.title("Ekila Downloader App")
-        # self.user_login = user_login
+        self.user_login = user_login
         self.geometry(f"{1129}x{675}")
         self.resizable(0, 0)
         self.grid_rowconfigure(6, weight=2)
@@ -226,7 +226,7 @@ class App(customtkinter.CTk):
     def header(self):
         """define the header of the application"""
 
-        self.user_label = customtkinter.CTkLabel(master=self, text=f"vous est connecté")
+        self.user_label = customtkinter.CTkLabel(master=self, text=f"{self.user_login} est connecté")
         self.user_label.grid(row=0, column=0, sticky="nw", padx=2)
         self.date_label = customtkinter.CTkLabel(master=self, text=self.current_date)
         self.date_label.grid(row=0, column=1, padx=90, sticky="e")
