@@ -22,7 +22,7 @@ class ExcelUtils(ABC):
         NotImplemented
 
     @abstractmethod
-    def read_xlsx_file(self, file_dir: str) -> list:
+    def read_xlsx_file(self) -> list:
         """
         read a xlsx file
         :param: file_dir as string type (file path)
@@ -41,10 +41,14 @@ class ExcelFileHandler(ExcelUtils):
     def __init__(self, file_dir: str = None) -> None:
         self.file_dir = file_dir
         self.values: list = []
+        self.workbook, self.worksheet = self.load_xls_file()
 
     def add_value(self, *args) -> None:
         for value in args:
             self.values.append(value)
+
+    def save_file(self) -> None:
+        self.workbook.save("static/METADATA-NEW-TEMPLATE-FR.xltx")
 
     def load_xls_file(self) -> tuple:
         workbook = openpyxl.load_workbook(self.file_dir)
@@ -95,22 +99,20 @@ class ExcelFileHandler(ExcelUtils):
         return MetaData(song_data=media_data)
 
     def write_in_xlsx_file(self, data: MetaData) -> None:
-        workbook, worksheet = self.load_xls_file()
         xls_data = XlsMeta(song_metada=data)
         datas = self.read_xlsx_file()
         if self.get_metadata(metadata=xls_data) not in datas:
             metadata = [self.get_metadata(metadata=xls_data)]
             self.add_value(*metadata)
-            worksheet.append(self.values[0])
-            workbook.save("static/document_template.xltx")
+            self.worksheet.append(self.values[0])
             self.values = []
         else:
             raise Exception("Already in the sheet file")
 
     def read_xlsx_file(self) -> list:
-        workbook, worksheet = self.load_xls_file()
-        all_data = [list(row) for row in worksheet.values]
+        all_data = [list(row) for row in self.worksheet.values]
         return all_data
+
 
 if __name__ == "__main__":
     pass

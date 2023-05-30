@@ -28,8 +28,8 @@ class User:
         self.__username = username
         self.__email = email
         self.__password = password
-        self.__last_login = get_time_today()  # datetime field
-        self.__date_joined = get_time_today()  # datetime field
+        self.__last_login = get_time_today()
+        self.__date_joined = get_time_today()
         self.__is_active = True
         self.__is_admin = False
 

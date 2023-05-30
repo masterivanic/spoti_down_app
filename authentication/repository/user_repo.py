@@ -27,8 +27,6 @@ update_last_user_login = """ UPDATE users SET last_login = ?  WHERE id = ? """
 update_user_active = """ UPDATE users SET is_active = ?  WHERE id = ? """
 
 delete_user = """ DELETE FROM users WHERE id = ? """
-all([1,7])
-
 
 class DatabaseConnection:
     """manage database"""
@@ -39,8 +37,6 @@ class DatabaseConnection:
         self.conn = self.create_connection()
 
     def create_connection(self):
-        """create connection to our database"""
-
         database = os.getcwd() + "\data.db"
         try:
             self.conn = sqlite3.connect(database)
@@ -49,13 +45,9 @@ class DatabaseConnection:
         return self.conn
 
     def close_connection(self):
-        """close connection to our database"""
-
         self.conn.close()
 
     def create_table(self, query):
-        """create table to our database"""
-
         try:
             cur = self.conn.cursor()
             cur.execute(query)
@@ -76,8 +68,6 @@ class UserRepository:
         self.database = database
 
     def get_user_by_email(self, email):
-        """get user by email"""
-
         cur = self.database.conn.cursor()
         cur.execute(user_by_mail, (email,))
         self.database.conn.commit()
@@ -85,8 +75,6 @@ class UserRepository:
         return rows
 
     def get_all_users(self):
-        """get all users"""
-
         cur = self.database.conn.cursor()
         cur.execute(users_list)
         self.database.conn.commit()
@@ -97,46 +85,29 @@ class UserRepository:
         pass
 
     def create_user(self, args):
-        """create a user"""
-
         cur = self.database.conn.cursor()
         cur.execute(insert_user, args)
         self.database.conn.commit()
 
     def update_user_last_login(self, user_id, last_login):
-        """update user last login"""
-
         cur = self.database.conn.cursor()
         cur.execute(update_last_user_login, (last_login, user_id))
         self.database.conn.commit()
 
     def update_user_is_active(self, user_id, active_num):
-        """update user last login"""
-
         cur = self.database.conn.cursor()
         cur.execute(update_user_active, (active_num, user_id))
         self.database.conn.commit()
 
     def delete_user(self, user_id):
-        """update user last login"""
-
         cur = self.database.conn.cursor()
         cur.execute(delete_user, (user_id,))
         self.database.conn.commit()
 
 
 if __name__ == "__main__":
-    database = DatabaseConnection()
-    repo = UserRepository(database=database)
     from datetime import datetime
 
     def get_time_today():
         """get current date time"""
         return datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-
-    # value = repo.create_user("admin", "admin@gmail.com","Atsyghhjfdgfhjhgfhfkgs", get_time_today(), get_time_today())
-    # print(value)
-    # users = repo.update_user_last_login(3, get_time_today())
-    us = repo.get_all_users()
-    print(us)
-    # print(users) 12345678
