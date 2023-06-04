@@ -1,3 +1,33 @@
+class ContributorData:
+
+    def __init__(self, title:str = None, track:int = None, artist_name:str = None) -> None:
+        self.contributor_name = "OSPT"
+        self.role1 = "artists"
+        self.role2 = "artists"
+        self.role3 = "artists"
+        self.role4 = "artists"
+        self.release_title = title
+        self.track = ""
+        self.spotify_id = ""
+        self.apple_music_id = ""
+
+    def has_numbers(self, any_string):
+        return any(char.isdigit() for char in any_string)
+
+    def get_attributes(self):
+        list_attrs = list(self.__dict__.keys())
+        return list(filter(lambda x: self.has_numbers(x), list_attrs))
+
+    def set_attributes(self, attr_value:str):
+        for value in self.get_attributes():
+            setattr(self, value, attr_value)
+
+    def set_track(self, index:int):
+        self.track += str(index)
+
+    def __str__(self) -> str:
+        return self.contributor_name + "" + self.release_title
+
 class MetaData:
     """define song metadata models"""
 
@@ -18,7 +48,7 @@ class MetaData:
         try:
             self._disc = song_data["TAG"]["disc"]
         except KeyError:
-            self._disc = "0"
+            self._disc = "1"
         try:
             self._genre = song_data["TAG"]["genre"]
         except KeyError:
@@ -48,6 +78,8 @@ class MetaData:
         except KeyError:
             self._date = "Unknow publisher"
 
+        self._contributor = ContributorData(title=self._title, track=self._num_track, artist_name=None)
+
     @property
     def title(self):
         return self._title
@@ -59,6 +91,7 @@ class MetaData:
     @num_track.setter
     def num_track(self, num_track: int):
         self._num_track = num_track
+        self._contributor.track = num_track
 
     @property
     def disc(self):
@@ -91,6 +124,10 @@ class MetaData:
     @property
     def date(self):
         return self._date
+
+    @property
+    def contributor(self):
+        return self._contributor
 
     def __repr__(self) -> str:
         return f"title: {self.title}\n num track:{self.num_track} \n disc:{self.disc} \n\
@@ -141,6 +178,7 @@ class XlsMeta:
             self.commercial_desc_gr = ""
             self.commercial_desc_it = ""
             self.commercial_desc_sp = ""
+            self.contributor = self._song_metadata.contributor
         else:
             self.track_number = 0
             self.track_title = None
@@ -174,3 +212,4 @@ class XlsMeta:
             self.commercial_desc_gr = None
             self.commercial_desc_it = None
             self.commercial_desc_sp = None
+            self.contributor = ContributorData()

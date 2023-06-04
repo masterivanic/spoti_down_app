@@ -48,6 +48,12 @@ class Controller:
 
         return self.sp_client.create_playlists(playlist_name)
 
+    def open_input_dialog_for_volume_number(self):
+        dialog = customtkinter.CTkInputDialog(
+            text="Entrer le numero de volume:", title="Numéro volume"
+        )
+        return dialog.get_input()
+
     def delete_playlist(self, playlist_id):
         """permit a user to delete a playlist"""
 
@@ -473,17 +479,22 @@ class Controller:
         else:
             showwarning("Warning", "Choisir un dossier")
 
-    async def _write_metadata_in_xls_file(self, song_path: str) -> None:
+    async def _write_metadata_in_xls_file(
+        self, song_path: str, number_volume: str
+    ) -> None:
         if song_path and song_path.endswith(".mp3"):
             data: MetaData = self.excel_handler.get_file_metadata(song_path)
             data._num_track = self.num_track
+            data.contributor.track = number_volume + "."
+            data.contributor.set_track(self.num_track)
             self.view.son_path_entry.delete(0, tkinter.END)
             self.excel_handler.write_in_xlsx_file(data=data)
 
     async def write_many_metadata_in_xls_file(self, song_path: str) -> None:
         all_songs: list[str] = song_path.split(";")
+        volume: str = self.open_input_dialog_for_volume_number()
         for song in all_songs:
-            await self._write_metadata_in_xls_file(song)
+            await self._write_metadata_in_xls_file(song, volume)
             self.num_track += 1
         self.num_track = 1
         self.excel_handler.save_file()
