@@ -217,7 +217,6 @@ class AuthForm(customtkinter.CTk):
                     password = password
                 )
                 is_login = self.controller.user_login(user)
-                print(is_login)
                 if is_login == None:
                     showwarning("Warning", "Utilisateur n'existe pas")
                 elif is_login == True:
