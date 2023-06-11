@@ -1,7 +1,7 @@
 class ContributorData:
 
     def __init__(self, title:str = None, track:int = None, artist_name:str = None) -> None:
-        self.contributor_name = "OSPT"
+        self.contributor_name = artist_name
         self.role1 = "artists"
         self.role2 = "artists"
         self.role3 = "artists"
@@ -78,7 +78,7 @@ class MetaData:
         except KeyError:
             self._date = "Unknow publisher"
 
-        self._contributor = ContributorData(title=self._title, track=self._num_track, artist_name=None)
+        self._contributor = ContributorData(title=self._title, track=self._num_track, artist_name=self._artist)
 
     @property
     def title(self):

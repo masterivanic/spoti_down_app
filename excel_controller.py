@@ -139,7 +139,6 @@ class ExcelFileHandler(ExcelUtils):
     def read_xlsx_file(self) -> list:
         return [list(row) for row in self.worksheet.values]
 
-
     def read_xlsx_files(self) -> list:
         return [list(row) for row in self.contributor_worksheet.values]
 
