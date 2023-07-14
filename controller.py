@@ -369,6 +369,12 @@ class Controller:
         except Exception as error:
             raise error
 
+    def initialise_download_textbox(self):
+        try:
+            self.view.textbox.delete("0.0", "end")
+        except ComponentError:
+            raise Exception('component not found')
+
     def download_one_song(self, url):
         downloader = Downloader(
             sp_client=self.sp_client,
@@ -378,6 +384,8 @@ class Controller:
         )
         downloader.call_download(query=url)
         showinfo("Info", "Tous les fichiers téléchargés avec succès")
+        self.initialise_download_textbox()
+
 
     def download_song(self, url_crypte) -> None:
         from multiprocessing.pool import ThreadPool
@@ -389,6 +397,12 @@ class Controller:
             decrypt_word = url_crypte
         else:
             decrypt_word = SimpleEncryption(url=None)._decrypt_url(url_crypte)
+
+        playlist_url =decrypt_word.split("/")
+        playlist_id = playlist_url[len(playlist_url) - 1]
+        value = self.sp_client._get_playlist_tracks(playlist_id=playlist_id)
+        tracks = [track.url for track in value]
+        self.view.textbox.insert(tkinter.INSERT, f"Downloading {len(tracks)} songs, telechargement en cours....")
         self.initialise_down_entry()
         with ThreadPool() as pool:
             pool.apply_async(self.download_one_song, (decrypt_word,))
@@ -401,8 +415,12 @@ class Controller:
         except:
             raise ComponentError
 
-    async def download_songs(self, down_path: str):
+    def download_songs(self, down_path: str):
+        import time
         progress = 0
+        start_time = time.time()
+        count = 0
+
         if down_path.startswith("https"):
             tab = down_path.split("/")
             playlist_id = tab[len(tab) - 1]
@@ -413,20 +431,42 @@ class Controller:
         try:
             value = self.sp_client._get_playlist_tracks(playlist_id=playlist_id)
             tracks = [track.url for track in value]
-            if len(tracks) > 0:
-                self.initialise_down_entry()
-                for song_url in tracks:
-                    self.view.progressbar.start()
-                    self.view.progressbar.stop()
-                    await self.download_one_song(song_url)
-                    progress = 1 / len(tracks) + progress
-                    self.view.progressbar.set(progress)
+            self.view.textbox.insert(tkinter.INSERT, f"Downloading {len(tracks)} songs...\n")
 
-                self.view.progressbar.stop()
-                self.view.progressbar.set(0)
-                showinfo("Success", f"téléchargement terminé")
-            else:
-                showwarning("warning", "playlist vide")
+            with ThreadPool(cpu_count()) as pool:
+                jobs = pool.map_async(self.download_one_song, tracks, chunksize=20)
+
+                failed_jobs = []
+                for job in jobs.get():
+                    if job["returncode"] != 0:
+                        failed_jobs.append(job)
+                    else:
+                        self.view.progressbar.start()
+                        progress = 1 / len(tracks) + progress
+                        self.view.progressbar.set(progress)
+                        message = (
+                            f"Download Finished!\n\tCompleted {len(tracks) - len(failed_jobs)}/{len(tracks)}"
+                            f" songs in {time.time() - start_time:.0f}s\n"
+                        )
+                        self.view.textbox.insert(tkinter.INSERT, message)
+
+            # if len(tracks) > 0:
+            #     self.initialise_down_entry()
+            # #     for song_url in tracks:
+            # #         self.view.progressbar.start()
+            # #         with ThreadPool(cpu_count()) as pool:
+            # #             pool.apply_async(self.download_one_song, (song_url,))
+            # #             count += 1
+            # #             self.view.textbox.insert(tkinter.INSERT, "\t" + str(count) + " song(s) downloaded \n")
+            # #             self.view.update()
+            # #             progress = 1 / len(tracks) + progress
+            # #             self.view.progressbar.set(progress)
+
+            #     self.view.progressbar.stop()
+            #     self.view.progressbar.set(0)
+            #     showinfo("Success", f"téléchargement terminé")
+            # else:
+            #     showwarning("warning", "playlist vide")
         except Exception as error:
             raise error
 
@@ -443,7 +483,7 @@ class Controller:
         except Exception:
             pass
 
-    def open_song_folder(self):
+    def open_song_folder(self) -> None:
         path = askdirectory(title="Selectionner un dossier")
         if self.view.convert_entry:
             self.view.convert_entry.set(str(path))

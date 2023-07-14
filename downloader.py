@@ -12,7 +12,7 @@ import validators
 from ffmpy import FFmpeg
 from ffmpy import FFRuntimeError
 from requests.exceptions import ConnectionError
-from youtube_dl import YoutubeDL
+from yt_dlp import YoutubeDL
 
 from exceptions import FFmpegNotInstalledError
 from exceptions import InternetConnectionError
@@ -30,6 +30,8 @@ from utils import clean
 from utils import create_dir
 from utils import PathHolder
 from utils import safe_path_string
+# from youtube_dl import YoutubeDL
+
 # from multiprocessing.dummy import Pool as ThreadPool
 
 
@@ -150,7 +152,6 @@ class Downloader:
 
     def _download(self, track: Track) -> dict:
         status = {"track": track, "returncode": -1}
-        print(track)
 
         extractor = "ytsearch"
         query = f"{extractor}:{str(track)} audio"
@@ -179,8 +180,10 @@ class Downloader:
             "nooverwrites": True,
             "noplaylist": True,
             "prefer_ffmpeg": True,
+            "quiet": True,
             # 'logger': self.logger,
             "progress_hooks": [self.utils._DownloaderUtils__progress],
+            "external_downloader_args": ["-loglevel", "panic"],
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
@@ -207,7 +210,6 @@ class Downloader:
                 f"track={track.track_number}/{track.album_track_count}",
                 "-metadata",
                 f"isrc={track.isrc}",
-
             ],
             **self.ydl_options,
         }
@@ -317,12 +319,3 @@ class Downloader:
 
 if __name__ == "__main__":
     pass
-    # print('Downloading started here.................')
-    # import os
-    # spotify_client = SpotifyCustomer()
-    # Downloader(sp_client=spotify_client,
-    #                             quality=Quality.BEST,
-    #                             download_format=Format.MP3,
-    #                             path_holder=PathHolder(
-    #                                 downloads_path=os.getcwd() + '/EkilaDownloader')
-    #                             ).download(query='https://open.spotify.com/playlist/52ccIIeQhU5kDEC9kXrgfe')
