@@ -27,10 +27,10 @@ def get_api_configuration():
     """spotify api keys"""
 
     conf = APIConfig
-    conf.SPOTIFY_CLIENT_ID = settings.SPOTIFY_CLIENT_ID
-    conf.USER_ID = settings.USER_ID
-    conf.SPOTIPY_REDIRECT_URI = settings.SPOTIPY_REDIRECT_URI
-    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.SPOTIFY_CLIENT_SECRET_KEY
+    conf.SPOTIFY_CLIENT_ID = settings.SEBAS__SPOTIFY_CLIENT_ID
+    conf.USER_ID = settings.SEBAS__USER_ID
+    conf.SPOTIPY_REDIRECT_URI = settings.SEBAS__SPOTIPY_REDIRECT_URI
+    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.SEBAS__SPOTIFY_CLIENT_SECRET_KEY
     conf.scopes = settings.scopes
     return conf
 
@@ -81,7 +81,7 @@ class App(customtkinter.CTk):
     )
 
     conf = get_api_configuration()
-    list_file:list = []
+    list_file: list = []
 
     def __init__(self, user_login):
         super().__init__()
@@ -147,7 +147,6 @@ class App(customtkinter.CTk):
                 self.son_path_entry.delete(0, tkinter.END)
             self.son_path_entry.insert(0, ";".join(song_path))
 
-
     def sidebar(self):
         """Setup side bar of the application"""
 
@@ -189,7 +188,9 @@ class App(customtkinter.CTk):
 
         menu_file.add_cascade(label="Ouvrir un fichier csv", command=self.get_path_file)
         # menu_file.add_cascade(label="Ouvrir un fichier audio", command=self.get_song_path)
-        menu_file.add_cascade(label="Ouvrir vos fichiers audios", command=self.get_many_song_path)
+        menu_file.add_cascade(
+            label="Ouvrir vos fichiers audios", command=self.get_many_song_path
+        )
         menu_file.add_cascade(
             label="Ouvrir un dossier contenant les sons",
             command=self.controller.open_song_folder,
@@ -226,7 +227,9 @@ class App(customtkinter.CTk):
     def header(self):
         """define the header of the application"""
 
-        self.user_label = customtkinter.CTkLabel(master=self, text=f"{self.user_login} est connecté")
+        self.user_label = customtkinter.CTkLabel(
+            master=self, text=f"{self.user_login} est connecté"
+        )
         self.user_label.grid(row=0, column=0, sticky="nw", padx=2)
         self.date_label = customtkinter.CTkLabel(master=self, text=self.current_date)
         self.date_label.grid(row=0, column=1, padx=90, sticky="e")
@@ -429,7 +432,11 @@ class App(customtkinter.CTk):
             border_width=2,
             text_color=("white", "#ffffff"),
             text="Metadata",
-            command=lambda: asyncio.run(self.controller.write_many_metadata_in_xls_file(self.convert_entry.get())),
+            command=lambda: asyncio.run(
+                self.controller.write_many_metadata_in_xls_file(
+                    self.convert_entry.get()
+                )
+            ),
         )
 
         self.convert_sons_button = customtkinter.CTkButton(

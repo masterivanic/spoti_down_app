@@ -1,10 +1,14 @@
+from __future__ import print_function
+
 import time
 from enum import Enum
 from typing import Any
 from typing import List
 
+import requests
 import spotipy
 from spotipy.cache_handler import MemoryCacheHandler
+from spotipy.oauth2 import SpotifyClientCredentials
 from spotipy.oauth2 import SpotifyOAuth
 
 from cache.cache_handler import CacheFileHandler
@@ -12,6 +16,15 @@ from settings import settings
 from tracks import Track
 from tracks import TrackDto
 from type import Type
+
+class APIConfig(Enum):
+    """Api configuration"""
+
+    SPOTIPY_REDIRECT_URI: str
+    SPOTIFY_CLIENT_ID: str
+    SPOTIFY_CLIENT_SECRET_KEY: str
+    USER_ID: str
+    scopes: str
 
 
 class SpotifyUtils:
@@ -27,7 +40,7 @@ class SpotifyUtils:
 
     @staticmethod
     def __pack_playlist(playlist, is_playlist_panel: bool = False) -> list:
-        tracks:List[Any] = []
+        tracks: List[Any] = []
         tracks_temp = [track["track"] for track in playlist["tracks"] if track]
         for track_data in tracks_temp:
             if track_data:
@@ -41,15 +54,32 @@ class SpotifyUtils:
                     tracks.append(Track(track_data))
         return tracks
 
+    def create_oauth(self, config: APIConfig):
+        return SpotifyOAuth(
+            client_id=config.SPOTIFY_CLIENT_ID,
+            client_secret=config.SPOTIFY_CLIENT_SECRET_KEY,
+            redirect_uri=config.SPOTIPY_REDIRECT_URI,
+            scope=config.scopes,
+            cache_handler=None,
+        )
 
-class APIConfig(Enum):
-    """Api configuration"""
+    def login(self, config: APIConfig):
+        sp_oauth = self.create_oauth(config)
+        auth_url = sp_oauth.get_authorize_url()
+        return requests.get(auth_url)
 
-    SPOTIPY_REDIRECT_URI: str
-    SPOTIFY_CLIENT_ID: str
-    SPOTIFY_CLIENT_SECRET_KEY: str
-    USER_ID: str
-    scopes: str
+    def get_code(self, config: APIConfig):
+        # print(self.login(config).cookies)
+        response = requests.get(self.login(config).url)
+        if response.history:
+            print("Request was redirected")
+            for resp in response.history:
+                print(resp.status_code, resp.url)
+            print("Final destination:")
+            print(response.status_code, response.url)
+        else:
+            print("Request was not redirected")
+
 
 
 class SpotifyCustomer:
@@ -78,7 +108,31 @@ class SpotifyCustomer:
         if isinstance(token_info, dict):
             self.auth_manager.cache_handler = MemoryCacheHandler(token_info=token_info)
             self.auth_manager.cache_handler.save_token_to_cache(token_info=token_info)
-            self.client = spotipy.Spotify(auth_manager=self.auth_manager, language=None)
+            # self.client = spotipy.Spotify(auth_manager=self.auth_manager, language=None)
+            try:
+                auth_manager = SpotifyClientCredentials(config.SPOTIFY_CLIENT_ID, config.SPOTIFY_CLIENT_SECRET_KEY)
+                self.client = spotipy.Spotify(auth_manager=auth_manager)
+            except:
+                token = self.request_for_token(config)['access_token']
+                self.client = spotipy.Spotify(auth=token)
+
+    def request_for_token(self, config: APIConfig):
+        import requests
+        from base64 import b64encode
+
+        CLIENT_ID = config.SPOTIFY_CLIENT_ID.encode('ascii')
+        CLIENT_SECRET = config.SPOTIFY_CLIENT_SECRET_KEY.encode('ascii')
+
+        reqs_body = {'grant_type': 'client_credentials'}
+        encoded_cred = b64encode(CLIENT_ID + b':' + CLIENT_SECRET).decode('ascii')
+        header = {'Authorization': "Basic " + encoded_cred}
+        resp = requests.post(
+            url="https://accounts.spotify.com/api/token",
+            data=reqs_body,
+            headers=header
+        )
+        resp_json = resp.json()
+        return resp_json
 
     def is_token_expired(self) -> bool:
         now = int(time.time())
@@ -224,6 +278,12 @@ class SpotifyCustomer:
         except Exception:
             return []
 
+    def is_track_or_playlist(self, query) -> str:
+        if "/track/" in query:
+            return "TRACK"
+        elif "/playlist/" in query:
+            return "PLAYLIST"
+
     def _get_playlist_tracks(
         self, playlist_id, is_playlist_panel: bool = False
     ) -> list:
@@ -263,7 +323,7 @@ class SpotifyCustomer:
 
     def is_song_exist(self, playlist_title: str, song_uri: str) -> bool:
         track, exist = self.is_playlist_exist(playlist_title)
-        is_uri:bool = False
+        is_uri: bool = False
         if track["name"] == playlist_title:
             items = self.client.playlist(
                 playlist_id=track["id"], additional_types=("track",)
@@ -281,7 +341,7 @@ class SpotifyCustomer:
                 self.client.playlist_add_items(track["id"], tracks)
 
     async def send_one_song_to_playlist(self, song_uri: str, playlist_title):
-        tab_song:List[str] = []
+        tab_song: List[str] = []
         tab_song.append(song_uri)
         try:
             if playlist_title is not None:
@@ -298,4 +358,26 @@ class SpotifyCustomer:
 
 
 if __name__ == "__main__":
-    pass
+    api = APIConfig
+    api.SPOTIFY_CLIENT_ID = settings.SEBAS__SPOTIFY_CLIENT_ID
+    api.USER_ID = settings.SEBAS__USER_ID
+    api.SPOTIPY_REDIRECT_URI = settings.SEBAS__SPOTIPY_REDIRECT_URI
+    api.SPOTIFY_CLIENT_SECRET_KEY = settings.SEBAS__SPOTIFY_CLIENT_SECRET_KEY
+    api.scopes = settings.scopes
+
+    # sp = SpotifyUtils().get_code(api)
+
+    sp = SpotifyCustomer(api)
+    print(sp.get_artist("Ninho"))
+
+    # auth_manager = SpotifyClientCredentials(api.SPOTIFY_CLIENT_ID, api.SPOTIFY_CLIENT_SECRET_KEY)
+    # sp = spotipy.Spotify(auth_manager=auth_manager)
+
+    # playlists = sp.user_playlists('spotify')
+    # while playlists:
+    #     for i, playlist in enumerate(playlists['items']):
+    #         print("%4d %s %s" % (i + 1 + playlists['offset'], playlist['uri'],  playlist['name']))
+    #     if playlists['next']:
+    #         playlists = sp.next(playlists)
+    #     else:
+    #         playlists = None
