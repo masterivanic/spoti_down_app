@@ -49,5 +49,5 @@ class UserController:
         )
         return user[1]
 
-    def user_logout(user: User):
+    def user_logout(self, user: User):
         pass

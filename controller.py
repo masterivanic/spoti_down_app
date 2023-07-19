@@ -20,6 +20,7 @@ from excel_controller import ExcelFileHandler
 from exceptions import ComponentError
 from exceptions import SongError
 from metadata import MetaData
+from metadata import XlsMeta
 from settings.settings import LoadingState as load
 from spotify import SpotifyCustomer
 from type import Format
@@ -33,6 +34,10 @@ class Controller:
     SPOTIFY_TRACK_URI = "https://open.spotify.com/track/"
 
     num_track: int = 1
+    meta_start:int = 3
+    contrib_start:int = 2
+    len_meta:int = 0
+    len_contrib:int = 0
 
     def __init__(self, view, sp_client: SpotifyCustomer):
         self.view = view
@@ -40,7 +45,7 @@ class Controller:
         self.search_songs = []
         self.loading_state = None
         self.excel_handler = ExcelFileHandler(
-            file_dir="static/METADATA-NEW-TEMPLATE-EN.xlsx"
+            file_dir="static/METADATA.xlsx"
         )
 
     def create_playlist(self, playlist_name):
@@ -50,7 +55,7 @@ class Controller:
 
     def open_input_dialog_for_volume_number(self):
         dialog = customtkinter.CTkInputDialog(
-            text="Entrer le numero de volume:", title="Numéro volume"
+            text="Entrer le nom de l'album:", title="Nom album"
         )
         return dialog.get_input()
 
@@ -449,24 +454,6 @@ class Controller:
                             f" songs in {time.time() - start_time:.0f}s\n"
                         )
                         self.view.textbox.insert(tkinter.INSERT, message)
-
-            # if len(tracks) > 0:
-            #     self.initialise_down_entry()
-            # #     for song_url in tracks:
-            # #         self.view.progressbar.start()
-            # #         with ThreadPool(cpu_count()) as pool:
-            # #             pool.apply_async(self.download_one_song, (song_url,))
-            # #             count += 1
-            # #             self.view.textbox.insert(tkinter.INSERT, "\t" + str(count) + " song(s) downloaded \n")
-            # #             self.view.update()
-            # #             progress = 1 / len(tracks) + progress
-            # #             self.view.progressbar.set(progress)
-
-            #     self.view.progressbar.stop()
-            #     self.view.progressbar.set(0)
-            #     showinfo("Success", f"téléchargement terminé")
-            # else:
-            #     showwarning("warning", "playlist vide")
         except Exception as error:
             raise error
 
@@ -520,22 +507,43 @@ class Controller:
             showwarning("Warning", "Choisir un dossier")
 
     async def _write_metadata_in_xls_file(
-        self, song_path: str, number_volume: str
+        self, song_path: str, album:str
     ) -> None:
+        datas = []
         if song_path and song_path.endswith(".mp3"):
-            data: MetaData = self.excel_handler.get_file_metadata(song_path)
-            data._num_track = self.num_track
-            data.contributor.track = number_volume + "."
-            data.contributor.set_track(self.num_track)
+            data_meta =  self.get_all_data(song_path, self.num_track, album)
+            metas, contribs = self.get_data(data_meta)
             self.view.son_path_entry.delete(0, tkinter.END)
-            self.excel_handler.write_in_xlsx_file(data=data)
+            self.excel_handler.write_in_xlsx_file(data=(metas, contribs),  meta_start=self.meta_start, contrib_start=self.contrib_start)
+            self.len_meta = len(metas)
+            self.len_contrib = len(contribs)
+
+    def get_data(self, datas):
+        metas, contribs = [], []
+        for data in datas:
+            meta, contrib = self.excel_handler.get_metadata(metadata=XlsMeta(song_metada=data))
+            metas.append(meta)
+            contribs.append(contrib)
+        return metas, contribs
+
+    def get_all_data(self, song_path, num, album):
+        all_songs = song_path.split(";")
+        meta_data = []
+        for song_path in all_songs:
+            data = self.excel_handler.get_file_metadata(song_path)
+            data.num_track = num
+            data.album = album
+            data.contributor.track = str(1) + "."
+            data.contributor.set_track(num)
+            num += 1
+            meta_data.append(data)
+        return meta_data
 
     async def write_many_metadata_in_xls_file(self, song_path: str) -> None:
-        all_songs: list[str] = song_path.split(";")
-        volume: str = self.open_input_dialog_for_volume_number()
-        for song in all_songs:
-            await self._write_metadata_in_xls_file(song, volume)
-            self.num_track += 1
-        self.num_track = 1
+        album: str = self.open_input_dialog_for_volume_number()
+        await self._write_metadata_in_xls_file(song_path, album)
         self.excel_handler.save_file()
+        self.num_track = 1
+        self.meta_start += self.len_meta
+        self.contrib_start += self.len_contrib
         showinfo("Info", "Operation terminée")

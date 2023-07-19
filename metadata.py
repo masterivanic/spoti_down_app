@@ -3,9 +3,9 @@ class ContributorData:
     def __init__(self, title:str = None, track:int = None, artist_name:str = None) -> None:
         self.contributor_name = artist_name
         self.role1 = "artists"
-        self.role2 = "artists"
-        self.role3 = "artists"
-        self.role4 = "artists"
+        self.role2 = "composers"
+        self.role3 = "producers"
+        self.role4 = ""
         self.release_title = title
         self.track = ""
         self.spotify_id = ""
@@ -45,14 +45,12 @@ class MetaData:
             self._num_track = song_data["TAG"]["track"]
         except KeyError:
             self._num_track = 0
-        try:
-            self._disc = song_data["TAG"]["disc"]
-        except KeyError:
-            self._disc = "1"
+
+        self._disc = "1"
         try:
             self._genre = song_data["TAG"]["genre"]
         except KeyError:
-            self._genre = "Unknow genre"
+            self._genre = "Pop"
         try:
             self._artist = song_data["TAG"]["artist"]
         except KeyError:
@@ -76,9 +74,9 @@ class MetaData:
         try:
             self._date = song_data["TAG"]["date"]
         except KeyError:
-            self._date = "Unknow publisher"
+            self._date = "2020"
 
-        self._contributor = ContributorData(title=self._title, track=self._num_track, artist_name=self._artist)
+        self._contributor = ContributorData(title=self._album, track=self._num_track, artist_name=self._artist)
 
     @property
     def title(self):
@@ -109,6 +107,11 @@ class MetaData:
     def album(self):
         return self._album
 
+    @album.setter
+    def album(self, album_name):
+        self._album = album_name
+        self._contributor.release_title = album_name
+
     @property
     def isrc(self):
         return self._tsrc
@@ -138,6 +141,12 @@ class MetaData:
 
 
 class XlsMeta:
+
+    def format_date(self, date:str):
+        if "-" in date:
+            return date.split('-')[0]
+        return date
+
     def __init__(self, song_metada: MetaData = None) -> None:
         self._song_metadata = song_metada
 
@@ -146,26 +155,22 @@ class XlsMeta:
             self.track_title = self._song_metadata.title
             self.subtitle = ""
             self.cd_number = self._song_metadata.disc
-            self.release_title = self._song_metadata.title
-            self.label = self._song_metadata.artist
-            self.production_year = self._song_metadata.date
-            self.production_owner = self._song_metadata.publisher
-            self.copyright_owner = (
-                self._song_metadata.publisher
-                if self._song_metadata.publisher
-                else self._song_metadata.artist
-            )
+            self.release_title = self._song_metadata.album # mettre ici le titre de l'album
+            self.label = self.release_title
+            self.production_year = self.format_date(self._song_metadata.date)
+            self.production_owner = self.release_title
+            self.copyright_owner = self.release_title
             self.genre = self._song_metadata.genre
-            self.sub_genre = ""
-            self.tracktype = ""
-            self.lyrics_language = ""
+            self.sub_genre = self._song_metadata.genre
+            self.tracktype = "ORIGINAL"
+            self.lyrics_language = "FRENCH"
             self.title_language = "FRENCH"
             self.parental_advisory = "NO"
-            self.territorie_deliver = ""
+            self.territorie_deliver = "WW"
             self.release_price_tier = ""
             self.track_price_tier = ""
-            self.digital_release_date = "NO"
-            self.physical_release_date = "Worldwide"
+            self.digital_release_date = ""
+            self.physical_release_date = ""
             self.simple_start_index = ""
             self.isrc = self._song_metadata.isrc
             self.upc_code = ""
@@ -180,7 +185,7 @@ class XlsMeta:
             self.commercial_desc_sp = ""
             self.contributor = self._song_metadata.contributor
         else:
-            self.track_number = 0
+            self.track_number = 1
             self.track_title = None
             self.subtitle = None
             self.cd_number = None

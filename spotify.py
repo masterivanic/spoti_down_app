@@ -358,26 +358,4 @@ class SpotifyCustomer:
 
 
 if __name__ == "__main__":
-    api = APIConfig
-    api.SPOTIFY_CLIENT_ID = settings.SEBAS__SPOTIFY_CLIENT_ID
-    api.USER_ID = settings.SEBAS__USER_ID
-    api.SPOTIPY_REDIRECT_URI = settings.SEBAS__SPOTIPY_REDIRECT_URI
-    api.SPOTIFY_CLIENT_SECRET_KEY = settings.SEBAS__SPOTIFY_CLIENT_SECRET_KEY
-    api.scopes = settings.scopes
-
-    # sp = SpotifyUtils().get_code(api)
-
-    sp = SpotifyCustomer(api)
-    print(sp.get_artist("Ninho"))
-
-    # auth_manager = SpotifyClientCredentials(api.SPOTIFY_CLIENT_ID, api.SPOTIFY_CLIENT_SECRET_KEY)
-    # sp = spotipy.Spotify(auth_manager=auth_manager)
-
-    # playlists = sp.user_playlists('spotify')
-    # while playlists:
-    #     for i, playlist in enumerate(playlists['items']):
-    #         print("%4d %s %s" % (i + 1 + playlists['offset'], playlist['uri'],  playlist['name']))
-    #     if playlists['next']:
-    #         playlists = sp.next(playlists)
-    #     else:
-    #         playlists = None
+    pass
