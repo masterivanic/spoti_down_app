@@ -120,21 +120,27 @@ class ExcelFileHandler(ExcelUtils):
             media_data = mediainfo(dir_path)
         return MetaData(song_data=media_data)
 
-    def write_in_xlsx_file(self, data: MetaData) -> None:
-        xls_data = XlsMeta(song_metada=data)
-        datas = self.read_xlsx_file()
-        metadatas, contrib_data = self.get_metadata(metadata=xls_data)
-        if metadatas not in datas:
-            metadata = [metadatas]
-            contributors = [contrib_data]
-            self.add_value(*metadata)
-            self.add_contrib_values(*contributors)
-            self.contributor_worksheet.append(self.contrib_data[0])
-            self.worksheet.append(self.values[0])
-            self.values = []
-            self.contrib_data = []
-        else:
-            raise Exception("Already in the sheet file")
+
+    def write_metadata_to_excel(self, sheet, data, start_row, workbook):
+        for row_index, row_data in enumerate(data, start=start_row):
+            for col_index, value in enumerate(row_data, start=1):
+                c1 = sheet.cell(row=row_index, column=col_index)
+                c1.value = value
+        workbook.save("static/METADATA-NEW-TEMPLATE-FR.xltx")
+
+    def write_contributeur_to_excel(self, sheet, data, start_row, workbook):
+        for row_index, row_data in enumerate(data, start=start_row):
+            for col_index, value in enumerate(row_data, start=1):
+                c1 = sheet.cell(row=row_index, column=col_index)
+                c1.value = value
+        workbook.save("static/METADATA-NEW-TEMPLATE-FR.xltx")
+
+    def write_in_xlsx_file(self, data, meta_start=3, contrib_start=2) -> None:
+        self.write_metadata_to_excel(self.worksheet, data[0], meta_start,  self.workbook)
+        self.write_contributeur_to_excel(self.contributor_worksheet, data[1], contrib_start, self.workbook)
+        self.values = []
+        self.contrib_data = []
+
 
     def read_xlsx_file(self) -> list:
         return [list(row) for row in self.worksheet.values]
@@ -144,5 +150,4 @@ class ExcelFileHandler(ExcelUtils):
 
 
 if __name__ == "__main__":
-    excel = ExcelFileHandler("static/METADATA-NEW-TEMPLATE-EN.xlsx")
-    print(excel.read_xlsx_files())
+    pass
