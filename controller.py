@@ -38,6 +38,7 @@ class Controller:
     contrib_start:int = 2
     len_meta:int = 0
     len_contrib:int = 0
+    is_song_loading:bool = False
 
     def __init__(self, view, sp_client: SpotifyCustomer):
         self.view = view
@@ -150,7 +151,7 @@ class Controller:
     async def read_unique_file(self, file_path):
         """read song on csv file and print response on screen"""
 
-        song_title, count = [], 0
+        song_title, count = set(), 0
         self.search_songs = []
         progress = 0
         if file_path:
@@ -159,7 +160,7 @@ class Controller:
                 for row in csvreader:
                     new_row = row[0].split(";")
                     if new_row[1] != "Listen num":
-                        song_title.append(new_row[1])
+                        song_title.add(new_row[1])
 
             self.view.progressbar.configure(determinate_speed=1)
             for song in song_title:
@@ -224,6 +225,9 @@ class Controller:
             for i, songs in enumerate(self.search_songs):
                 await self.checkbox_song_output(songs, i)
                 self.view.update()
+                self.is_song_loading = True
+            self.is_song_loading = False
+            showinfo(title="Info", message="Chargement terminé, proceder aux transfert..")
 
         except Exception as err:
             raise err

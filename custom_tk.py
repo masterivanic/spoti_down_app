@@ -82,6 +82,7 @@ class App(customtkinter.CTk):
 
     conf = get_api_configuration()
     list_file: list = []
+    is_song_loading:bool = False
 
     def __init__(self, user_login):
         super().__init__()
