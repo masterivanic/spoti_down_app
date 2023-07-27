@@ -211,30 +211,21 @@ class Utils:
 
     @staticmethod
     def print_month(num:int) -> str:
-        day:str = None
-        if num == 1:
-            day = "Janvier"
-        elif num == 2:
-            day = "Fevrier"
-        elif num == 3:
-            day = "Mars"
-        elif num == 4:
-            day = "Avril"
-        elif num == 5:
-            day = "Mai"
-        elif num == 6:
-            day = "Juin"
-        elif num == 7:
-            day = "Juillet"
-        elif num == 8:
-            day = "Aout"
-        elif num == 9:
-            day = "Septembre"
-        elif num == 10:
-            day = "Octobre"
-        elif num == 11:
-            day = "Novembre"
-        elif num == 12:
-            day = "Decembre"
-
-        return day
+        months = [
+            "Janvier",
+            "Février",
+            "Mars",
+            "Avril",
+            "Mai",
+            "Juin"
+            "Juillet",
+            "Aout",
+            "Septembre",
+            "Octobre",
+            "Novembre",
+            "Décembre"
+        ]
+        try:
+            return months[num-1]
+        except:
+            return ""
