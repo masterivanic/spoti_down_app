@@ -1,10 +1,11 @@
-# __all__ = ['Downloader']
 import time
 from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
+from os import remove
 from pathlib import Path
 from shutil import Error as ShutilError
 from shutil import move
+from typing import Any
 from urllib.error import URLError
 
 import tldextract
@@ -30,6 +31,8 @@ from utils import clean
 from utils import create_dir
 from utils import PathHolder
 from utils import safe_path_string
+
+
 # from youtube_dl import YoutubeDL
 
 # from multiprocessing.dummy import Pool as ThreadPool
@@ -40,8 +43,11 @@ class SongExists(Exception):
 
 
 class DownloaderUtils:
+    """some utils function"""
+
     @staticmethod
-    def __sort_dir(track, group):
+    def sort_directory(track, group) -> str:
+        """Sorted folder's files """
         if not group:
             return ""
         group = group.replace("%artist%", safe_path_string(track.artist_names[0]))
@@ -71,6 +77,7 @@ class Downloader:
         ydl_options: dict = {},
         skip_cover_art: bool = False,
         ffmpeg_location: str = "ffmpeg",
+        logger:Any = None
     ):
         self.downloaded_cover_art = {}
         self.download_format = download_format
@@ -82,6 +89,7 @@ class Downloader:
         self.skip_cover_art = skip_cover_art
         self.ffmpeg_location = ffmpeg_location
         self.sp_client = sp_client
+        self.logger = logger
         self.utils = DownloaderUtils()
 
         if not check_ffmpeg() and self.ffmpeg_location == "ffmpeg":
@@ -107,15 +115,15 @@ class Downloader:
 
         return result
 
-    def call_download(self, query):
+    def call_download(self, query) -> None:
         self.download(query=query, query_type=Type.TRACK)
 
     def download(self, query, query_type=Type.TRACK) -> None:
         start_time = time.time()
         try:
             queue = self._parse_query(query, query_type=query_type)
-        except ConnectionError or URLError:
-            raise InternetConnectionError
+        except (ConnectionError, URLError) as error:
+            raise InternetConnectionError(error)
 
         if not (len(queue) > 0):
             print("Nothing found using the given query.")
@@ -130,7 +138,6 @@ class Downloader:
                 if job["returncode"] != 0:
                     failed_jobs.append(job)
 
-        # self.logger.info('Cleaning up...')
         clean(self.path_holder.get_temp_dir())
 
         message = (
@@ -156,8 +163,8 @@ class Downloader:
         extractor = "ytsearch"
         query = f"{extractor}:{str(track)} audio"
         output = (
-            self.path_holder.get_download_dir()
-            / f"{ self.utils._DownloaderUtils__sort_dir(track, self.group)}"
+            self.path_holder.get_download_directory()
+            / f"{ self.utils.sort_directory(track, self.group)}"
             / safe_path_string(f"{str(track)}.{self.download_format}")
         )
 
@@ -165,8 +172,6 @@ class Downloader:
 
         if check_file(output):
             print(f"{str(track)} -> is already downloaded. Skipping...")
-            # self.logger.info(
-            #     f'{str(track)} -> is already downloaded. Skipping...')
             status["returncode"] = 0
             return status
 
@@ -181,7 +186,8 @@ class Downloader:
             "noplaylist": True,
             "prefer_ffmpeg": True,
             "quiet": True,
-            # 'logger': self.logger,
+            "no_warnings": True,
+            "logger": self.logger,
             "progress_hooks": [self.utils._DownloaderUtils__progress],
             "external_downloader_args": ["-loglevel", "panic"],
             "postprocessors": [
@@ -238,7 +244,7 @@ class Downloader:
                 if attempt > self.retry:
                     status["returncode"] = 1
                     status["error"] = "Failed to download song."
-                    # self.logger.error(ex.message)
+                    self.logger.error(ex.message)
                     print(ex.message)
                     return status
 
@@ -302,13 +308,11 @@ class Downloader:
                         status["returncode"] = 1
                         status["error"] = "Filesystem error."
                         print("Failed to move temp file!")
-                        # self.logger.error('Failed to move temp file!')
+                        self.logger.error('Failed to move temp file!')
                         return status
 
         status["returncode"] = 0
         try:
-            from os import remove
-
             remove(output_temp)
         except OSError:
             pass

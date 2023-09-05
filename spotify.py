@@ -1,21 +1,18 @@
-from __future__ import print_function
-
 import time
 from enum import Enum
 from typing import Any
+from typing import Dict
 from typing import List
 
-import requests
 import spotipy
 from spotipy.cache_handler import MemoryCacheHandler
-from spotipy.oauth2 import SpotifyClientCredentials
 from spotipy.oauth2 import SpotifyOAuth
 
 from cache.cache_handler import CacheFileHandler
-from settings import settings
 from tracks import Track
 from tracks import TrackDto
 from type import Type
+
 
 class APIConfig(Enum):
     """Api configuration"""
@@ -35,7 +32,6 @@ class SpotifyUtils:
             track_data = track
             track_data["album"] = album
             tracks.append(Track(track_data))
-
         return tracks
 
     @staticmethod
@@ -53,33 +49,6 @@ class SpotifyUtils:
                         {playlist['owner']['display_name']}"
                     tracks.append(Track(track_data))
         return tracks
-
-    def create_oauth(self, config: APIConfig):
-        return SpotifyOAuth(
-            client_id=config.SPOTIFY_CLIENT_ID,
-            client_secret=config.SPOTIFY_CLIENT_SECRET_KEY,
-            redirect_uri=config.SPOTIPY_REDIRECT_URI,
-            scope=config.scopes,
-            cache_handler=None,
-        )
-
-    def login(self, config: APIConfig):
-        sp_oauth = self.create_oauth(config)
-        auth_url = sp_oauth.get_authorize_url()
-        return requests.get(auth_url)
-
-    def get_code(self, config: APIConfig):
-        # print(self.login(config).cookies)
-        response = requests.get(self.login(config).url)
-        if response.history:
-            print("Request was redirected")
-            for resp in response.history:
-                print(resp.status_code, resp.url)
-            print("Final destination:")
-            print(response.status_code, response.url)
-        else:
-            print("Request was not redirected")
-
 
 
 class SpotifyCustomer:
@@ -99,40 +68,18 @@ class SpotifyCustomer:
             scope=config.scopes,
             cache_handler=None,
         )
-        self.sp_utils:SpotifyUtils = SpotifyUtils()
-        self.rest_cache:CacheFileHandler = CacheFileHandler(cache_path=None, username=None)
+        self.sp_utils: SpotifyUtils = SpotifyUtils()
+        self.rest_cache: CacheFileHandler = CacheFileHandler(
+            cache_path=None, username=None
+        )
 
-        token_info:dict = self.auth_manager.get_access_token()
-        self.user_id:str = config.USER_ID
+        token_info: Dict = self.auth_manager.get_access_token()
+        self.user_id: str = config.USER_ID
 
         if isinstance(token_info, dict):
             self.auth_manager.cache_handler = MemoryCacheHandler(token_info=token_info)
             self.auth_manager.cache_handler.save_token_to_cache(token_info=token_info)
-            # self.client = spotipy.Spotify(auth_manager=self.auth_manager, language=None)
-            try:
-                auth_manager = SpotifyClientCredentials(config.SPOTIFY_CLIENT_ID, config.SPOTIFY_CLIENT_SECRET_KEY)
-                self.client = spotipy.Spotify(auth_manager=auth_manager)
-            except:
-                token = self.request_for_token(config)['access_token']
-                self.client = spotipy.Spotify(auth=token)
-
-    def request_for_token(self, config: APIConfig):
-        import requests
-        from base64 import b64encode
-
-        CLIENT_ID = config.SPOTIFY_CLIENT_ID.encode('ascii')
-        CLIENT_SECRET = config.SPOTIFY_CLIENT_SECRET_KEY.encode('ascii')
-
-        reqs_body = {'grant_type': 'client_credentials'}
-        encoded_cred = b64encode(CLIENT_ID + b':' + CLIENT_SECRET).decode('ascii')
-        header = {'Authorization': "Basic " + encoded_cred}
-        resp = requests.post(
-            url="https://accounts.spotify.com/api/token",
-            data=reqs_body,
-            headers=header
-        )
-        resp_json = resp.json()
-        return resp_json
+            self.client = spotipy.Spotify(auth_manager=self.auth_manager)
 
     def is_token_expired(self) -> bool:
         now = int(time.time())

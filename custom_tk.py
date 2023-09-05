@@ -1,5 +1,4 @@
 import asyncio
-import os
 import tkinter as tk
 import tkinter.messagebox
 from datetime import datetime
@@ -27,10 +26,10 @@ def get_api_configuration():
     """spotify api keys"""
 
     conf = APIConfig
-    conf.SPOTIFY_CLIENT_ID = settings.SPOTIFY_CLIENT_ID
-    conf.USER_ID = settings.USER_ID
-    conf.SPOTIPY_REDIRECT_URI = settings.SPOTIPY_REDIRECT_URI
-    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.SPOTIFY_CLIENT_SECRET_KEY
+    conf.SPOTIFY_CLIENT_ID = settings.PAUL_SPOTIFY_CLIENT_ID
+    conf.USER_ID = settings.PAUL_USER_ID
+    conf.SPOTIPY_REDIRECT_URI = settings.PAUL_SPOTIPY_REDIRECT_URI
+    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.PAUL_SPOTIFY_CLIENT_SECRET_KEY
     conf.scopes = settings.scopes
     return conf
 
@@ -82,12 +81,12 @@ class App(customtkinter.CTk):
 
     conf = get_api_configuration()
     list_file: list = []
-    is_song_loading:bool = False
+    is_song_loading: bool = False
 
     def __init__(self, user_login):
         super().__init__()
 
-        self.title("Ekila Downloader App")
+        self.title("Ekila Downloader")
         self.user_login = user_login
         self.geometry(f"{1129}x{675}")
         self.resizable(0, 0)

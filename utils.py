@@ -11,8 +11,6 @@ from uuid import uuid1
 import customtkinter
 from pydub import AudioSegment
 
-__all__ = ['PathHolder']
-
 
 def clean(path) -> None:
     for file in os.listdir(path):
@@ -22,7 +20,6 @@ def clean(path) -> None:
                 os.unlink(file_path)
             elif os.path.isdir(file_path):
                 rmtree(file_path)
-
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
@@ -111,7 +108,7 @@ class PathHolder:
 
         create_dir(self.downloads_path)
 
-    def get_download_dir(self) -> Path:
+    def get_download_directory(self) -> Path:
         return self.downloads_path
 
     def get_temp_dir(self) -> Path:
@@ -125,12 +122,6 @@ class PathHolder:
         urlretrieve(url, str(file_path))
         return file_path
 
-"""
-ERROR: Unable to extract uploader id; please report this issue on https://yt-dl.org/bug .
-Make sure you are using the latest version; type  youtube-dl -U  to update.
-Be sure to call youtube-dl with the --verbose flag and include its complete output.
-
-"""
 
 class Utils:
 
@@ -139,6 +130,7 @@ class Utils:
         result = url.split('/')
         return result[len(result)-1]
 
+    @staticmethod
     def make_copy_file(files: list):
         dest_file = files[0]
         for i in range(1, len(files)):
@@ -191,7 +183,6 @@ class Utils:
 
     @staticmethod
     def print_day(num:int) -> str:
-        day:str = None
         if num == 1:
             day = "lundi"
         elif num == 2:
@@ -206,7 +197,6 @@ class Utils:
             day = "samedi"
         elif num == 7:
             day = "dimanche"
-
         return day
 
     @staticmethod
@@ -227,5 +217,5 @@ class Utils:
         ]
         try:
             return months[num-1]
-        except:
+        except IndexError:
             return ""
