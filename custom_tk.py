@@ -26,15 +26,16 @@ def get_api_configuration():
     """spotify api keys"""
 
     conf = APIConfig
-    conf.SPOTIFY_CLIENT_ID = settings.PAUL_SPOTIFY_CLIENT_ID
-    conf.USER_ID = settings.PAUL_USER_ID
-    conf.SPOTIPY_REDIRECT_URI = settings.PAUL_SPOTIPY_REDIRECT_URI
-    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.PAUL_SPOTIFY_CLIENT_SECRET_KEY
-    conf.scopes = settings.scopes
+    conf.SPOTIFY_CLIENT_ID = settings.STEEVE_SPOTIFY_CLIENT_ID
+    conf.USER_ID = settings.STEEVE_USER_ID
+    conf.SPOTIPY_REDIRECT_URI = settings.STEEVE_SPOTIPY_REDIRECT_URI
+    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.STEEVE_SPOTIFY_CLIENT_SECRET_KEY
+    conf.scopes = settings.SCOPES
     return conf
 
 
 def get_date():
+    """format date in french format"""
     month = datetime.today().month
     day = datetime.today().day
     year = datetime.today().year
@@ -104,6 +105,7 @@ class App(customtkinter.CTk):
         self.footer()
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
+        """setup window mode contrast"""
         if new_appearance_mode == "Mode clair":
             new_appearance_mode = "Light"
         elif new_appearance_mode == "Mode sombre":
@@ -385,14 +387,14 @@ class App(customtkinter.CTk):
         )
         self.download_sons_button.grid(row=3, column=1, pady=5, sticky="nw")
 
-        self.progressbar = customtkinter.CTkProgressBar(
+        self.download_progressbar = customtkinter.CTkProgressBar(
             self.download_frame,
             height=30,
             width=350,
             progress_color=("orange", "#FFA500"),
         )
-        self.progressbar.grid(row=3, column=1, padx=150, pady=5, sticky="nw")
-        self.progressbar.set(0)
+        self.download_progressbar.grid(row=3, column=1, padx=150, pady=5, sticky="nw")
+        self.download_progressbar.set(0)
 
     def conversion_son_panel(self):
         """dashboard interface for convert song in wav"""

@@ -119,16 +119,11 @@ class SpotifyCustomer:
             return []
 
     def get_user_plalists(self) -> list:
-        cache_content = self.rest_cache.get_cached_content()
-        try:
-            if not self.is_token_expired():
-                if cache_content is not None:
-                    return cache_content
-                else:
-                    user_playlist = self.get_playlist_from_api()
-                    return user_playlist
-        except Exception:
-            return []
+        if not self.is_token_expired():
+            user_playlist = self.get_playlist_from_api()
+            return user_playlist
+        return []
+
 
     def get_specific_albums_tracks(self, album_id) -> Any:
         if not self.is_token_expired():

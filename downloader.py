@@ -16,7 +16,6 @@ from requests.exceptions import ConnectionError
 from yt_dlp import YoutubeDL
 
 from exceptions import FFmpegNotInstalledError
-from exceptions import InternetConnectionError
 from exceptions import UrlNotSupportedError
 from exceptions import YoutubeDlExtractionError
 from spotify import SpotifyCustomer
@@ -115,18 +114,15 @@ class Downloader:
 
         return result
 
-    def call_download(self, query) -> None:
-        self.download(query=query, query_type=Type.TRACK)
-
     def download(self, query, query_type=Type.TRACK) -> None:
+        """download song as mp3 file"""
         start_time = time.time()
         try:
             queue = self._parse_query(query, query_type=query_type)
         except (ConnectionError, URLError) as error:
-            raise InternetConnectionError(error)
+            raise error
 
         if not (len(queue) > 0):
-            print("Nothing found using the given query.")
             return
 
         print(f"Downloading {len(queue)} songs...")
@@ -187,7 +183,6 @@ class Downloader:
             "prefer_ffmpeg": True,
             "quiet": True,
             "no_warnings": True,
-            "logger": self.logger,
             "progress_hooks": [self.utils._DownloaderUtils__progress],
             "external_downloader_args": ["-loglevel", "panic"],
             "postprocessors": [
@@ -259,7 +254,6 @@ class Downloader:
 
             status["returncode"] = 0
             print(f"Downloaded -> {str(track)}")
-            # self.logger.info(f'Downloaded -> {str(track)}')
             return status
 
         attempt = 0

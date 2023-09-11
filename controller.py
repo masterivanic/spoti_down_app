@@ -48,7 +48,7 @@ class Controller:
     contrib_start: int = 2
     len_meta: int = 0
     len_contrib: int = 0
-    is_song_loading: bool = False
+    is_song_loading: bool
     logger = logging.getLogger(__name__)
 
     def __init__(self, view, sp_client: SpotifyCustomer):
@@ -127,14 +127,13 @@ class Controller:
     def open_many_file(self):
         filetypes = (("csv files", "*.csv"), ("All files", "*.csv"))
         file_path = askopenfilenames(title="ouvrir un fichier", filetypes=filetypes)
-        file_list = [file for file in file_path]
+        file_list = list(file_path)
         return " ; ".join(file_path), file_list
 
     def open_many_mp3_file(self):
         filetypes = (("mp3 files", "*.mp3"), ("All songs files", "*.mp3"))
         file_path = askopenfilenames(title="Choisir vos sons", filetypes=filetypes)
-        file_list = [file for file in file_path]
-        return file_list
+        return list(file_path)
 
     def open_file_mp3(self):
         """get mp3 file path"""
@@ -187,7 +186,7 @@ class Controller:
                 except Exception:
                     pass
             self.view.progressbar.stop()
-            showinfo("Success", f"Opération terminée")
+            showinfo("Success", "Opération terminée")
             self.initialise_entry()
         else:
             showwarning("message", "Veuillez choisir un fichier!")
@@ -235,10 +234,12 @@ class Controller:
                 await self.checkbox_song_output(songs, i)
                 self.view.update()
                 self.is_song_loading = True
-            self.is_song_loading = False
-            showinfo(
-                title="Info", message="Chargement terminé, proceder aux transfert.."
-            )
+                if i + 1 == len(self.search_songs):
+                    self.is_song_loading = False
+            if not self.is_song_loading:
+                showinfo(
+                    title="Info", message="Chargement terminé, proceder aux transfert.."
+                )
 
         except Exception as err:
             raise err
@@ -337,7 +338,6 @@ class Controller:
 
         progress = 0
         playlist_name = self.get_selected_playlist()
-        """ make an algo for avoid duplicate song in playlist  """
 
         try:
             if self.loading_state == load.STOP.value:
@@ -375,6 +375,7 @@ class Controller:
                         for checkbox in self.scrollable_frame_switches:
                             await Utils.deselect_checkbox(checkbox)
                             self.view.update()
+
                     else:
                         showwarning("Warning", "Choisir une playlist")
                 else:
@@ -403,12 +404,11 @@ class Controller:
             path_holder=PathHolder(downloads_path=os.getcwd() + "/EkilaDownloader"),
             logger=logger,
         )
-        downloader.call_download(query=url)
+        downloader.download(query=url)
         showinfo("Info", "Tous les fichiers téléchargés avec succès")
         self.initialise_download_textbox()
 
     def download_song(self, url_crypte) -> None:
-        from multiprocessing.pool import ThreadPool
 
         if (
             self.SPOTIFY_PLAYLIST_URI in url_crypte
