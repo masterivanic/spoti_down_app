@@ -53,10 +53,10 @@ class ApplicationInterface:
     logger = logging.getLogger(__name__)
 
     conf = APIConfig
-    conf.SPOTIFY_CLIENT_ID = settings.SPOTIFY_CLIENT_ID
-    conf.USER_ID = settings.USER_ID
-    conf.SPOTIPY_REDIRECT_URI = settings.SPOTIPY_REDIRECT_URI
-    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.SPOTIFY_CLIENT_SECRET_KEY
+    conf.SPOTIFY_CLIENT_ID = settings.SEBAS__SPOTIFY_CLIENT_ID
+    conf.USER_ID = settings.SEBAS__USER_ID
+    conf.SPOTIPY_REDIRECT_URI = settings.SEBAS__SPOTIPY_REDIRECT_URI
+    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.SEBAS__SPOTIFY_CLIENT_SECRET_KEY
     conf.scopes = settings.scopes
 
     def __init__(self, master):

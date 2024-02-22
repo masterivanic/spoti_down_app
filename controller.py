@@ -1,6 +1,8 @@
 import asyncio
 import csv
+import logging
 import os
+import time
 import tkinter
 from multiprocessing import cpu_count
 from multiprocessing.pool import ThreadPool
@@ -11,6 +13,7 @@ from tkinter.filedialog import askopenfilenames
 from tkinter.messagebox import askyesno
 from tkinter.messagebox import showinfo
 from tkinter.messagebox import showwarning
+from typing import Tuple
 
 import customtkinter
 
@@ -18,8 +21,7 @@ from crypto import SimpleEncryption
 from downloader import Downloader
 from excel_controller import ExcelFileHandler
 from exceptions import ComponentError
-from exceptions import SongError
-from metadata import MetaData
+from metadata import XlsMeta
 from settings.settings import LoadingState as load
 from spotify import SpotifyCustomer
 from type import Format
@@ -32,21 +34,40 @@ class Controller:
     SPOTIFY_PLAYLIST_URI = "https://open.spotify.com/playlist/"
     SPOTIFY_TRACK_URI = "https://open.spotify.com/track/"
 
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
+        filename="error.log",
+        level=logging.DEBUG,
+        datefmt="%m/%d/%Y %I:%M:%S %p",
+    )
+
+    global logger
+
     num_track: int = 1
+    meta_start: int = 3
+    contrib_start: int = 2
+    len_meta: int = 0
+    len_contrib: int = 0
+    is_song_loading: bool
+    logger = logging.getLogger(__name__)
 
     def __init__(self, view, sp_client: SpotifyCustomer):
         self.view = view
         self.sp_client = sp_client
         self.search_songs = []
         self.loading_state = None
-        self.excel_handler = ExcelFileHandler(
-            file_dir="static/METADATA-NEW-TEMPLATE-EN.xlsx"
-        )
+        self.excel_handler = ExcelFileHandler(file_dir="static/METADATA.xlsx")
 
     def create_playlist(self, playlist_name):
         """permit a user to create a playlist"""
 
         return self.sp_client.create_playlists(playlist_name)
+
+    def open_input_dialog_for_volume_number(self):
+        dialog = customtkinter.CTkInputDialog(
+            text="Entrer le nom de l'album:", title="Nom album"
+        )
+        return dialog.get_input()
 
     def delete_playlist(self, playlist_id):
         """permit a user to delete a playlist"""
@@ -106,14 +127,13 @@ class Controller:
     def open_many_file(self):
         filetypes = (("csv files", "*.csv"), ("All files", "*.csv"))
         file_path = askopenfilenames(title="ouvrir un fichier", filetypes=filetypes)
-        file_list = [file for file in file_path]
+        file_list = list(file_path)
         return " ; ".join(file_path), file_list
 
     def open_many_mp3_file(self):
         filetypes = (("mp3 files", "*.mp3"), ("All songs files", "*.mp3"))
         file_path = askopenfilenames(title="Choisir vos sons", filetypes=filetypes)
-        file_list = [file for file in file_path]
-        return file_list
+        return list(file_path)
 
     def open_file_mp3(self):
         """get mp3 file path"""
@@ -139,7 +159,7 @@ class Controller:
     async def read_unique_file(self, file_path):
         """read song on csv file and print response on screen"""
 
-        song_title, count = [], 0
+        song_title, count = set(), 0
         self.search_songs = []
         progress = 0
         if file_path:
@@ -148,7 +168,7 @@ class Controller:
                 for row in csvreader:
                     new_row = row[0].split(";")
                     if new_row[1] != "Listen num":
-                        song_title.append(new_row[1])
+                        song_title.add(new_row[1])
 
             self.view.progressbar.configure(determinate_speed=1)
             for song in song_title:
@@ -164,9 +184,9 @@ class Controller:
                         self.view.progressbar.set(progress)
                         count += 1
                 except Exception:
-                    raise SongError
+                    pass
             self.view.progressbar.stop()
-            showinfo("Success", f"Opération terminée")
+            showinfo("Success", "Opération terminée")
             self.initialise_entry()
         else:
             showwarning("message", "Veuillez choisir un fichier!")
@@ -213,6 +233,13 @@ class Controller:
             for i, songs in enumerate(self.search_songs):
                 await self.checkbox_song_output(songs, i)
                 self.view.update()
+                self.is_song_loading = True
+                if i + 1 == len(self.search_songs):
+                    self.is_song_loading = False
+            if not self.is_song_loading:
+                showinfo(
+                    title="Info", message="Chargement terminé, proceder aux transfert.."
+                )
 
         except Exception as err:
             raise err
@@ -311,7 +338,6 @@ class Controller:
 
         progress = 0
         playlist_name = self.get_selected_playlist()
-        """ make an algo for avoid duplicate song in playlist  """
 
         try:
             if self.loading_state == load.STOP.value:
@@ -349,6 +375,7 @@ class Controller:
                         for checkbox in self.scrollable_frame_switches:
                             await Utils.deselect_checkbox(checkbox)
                             self.view.update()
+
                     else:
                         showwarning("Warning", "Choisir une playlist")
                 else:
@@ -363,18 +390,25 @@ class Controller:
         except Exception as error:
             raise error
 
-    def download_one_song(self, url):
+    def initialise_download_textbox(self):
+        try:
+            self.view.textbox.delete("0.0", "end")
+        except ComponentError as error:
+            raise error
+
+    def download_one_song(self, url) -> None:
         downloader = Downloader(
             sp_client=self.sp_client,
             quality=Quality.BEST,
             download_format=Format.MP3,
             path_holder=PathHolder(downloads_path=os.getcwd() + "/EkilaDownloader"),
+            logger=logger,
         )
-        downloader.call_download(query=url)
+        downloader.download(query=url)
         showinfo("Info", "Tous les fichiers téléchargés avec succès")
+        self.initialise_download_textbox()
 
     def download_song(self, url_crypte) -> None:
-        from multiprocessing.pool import ThreadPool
 
         if (
             self.SPOTIFY_PLAYLIST_URI in url_crypte
@@ -383,6 +417,13 @@ class Controller:
             decrypt_word = url_crypte
         else:
             decrypt_word = SimpleEncryption(url=None)._decrypt_url(url_crypte)
+
+        value = self.sp_client.link(decrypt_word)
+        tracks = [track.url for track in value]
+        self.view.textbox.insert(
+            tkinter.INSERT,
+            f"Downloading {len(tracks)} songs, telechargement en cours....",
+        )
         self.initialise_down_entry()
         with ThreadPool() as pool:
             pool.apply_async(self.download_one_song, (decrypt_word,))
@@ -395,8 +436,10 @@ class Controller:
         except:
             raise ComponentError
 
-    async def download_songs(self, down_path: str):
+    def download_songs(self, down_path: str):
         progress = 0
+        start_time = time.time()
+
         if down_path.startswith("https"):
             tab = down_path.split("/")
             playlist_id = tab[len(tab) - 1]
@@ -407,20 +450,26 @@ class Controller:
         try:
             value = self.sp_client._get_playlist_tracks(playlist_id=playlist_id)
             tracks = [track.url for track in value]
-            if len(tracks) > 0:
-                self.initialise_down_entry()
-                for song_url in tracks:
-                    self.view.progressbar.start()
-                    self.view.progressbar.stop()
-                    await self.download_one_song(song_url)
-                    progress = 1 / len(tracks) + progress
-                    self.view.progressbar.set(progress)
+            self.view.textbox.insert(
+                tkinter.INSERT, f"Downloading {len(tracks)} songs...\n"
+            )
 
-                self.view.progressbar.stop()
-                self.view.progressbar.set(0)
-                showinfo("Success", f"téléchargement terminé")
-            else:
-                showwarning("warning", "playlist vide")
+            with ThreadPool(cpu_count()) as pool:
+                jobs = pool.map_async(self.download_one_song, tracks, chunksize=20)
+
+                failed_jobs = []
+                for job in jobs.get():
+                    if job["returncode"] != 0:
+                        failed_jobs.append(job)
+                    else:
+                        self.view.progressbar.start()
+                        progress = 1 / len(tracks) + progress
+                        self.view.progressbar.set(progress)
+                        message = (
+                            f"Download Finished!\n\tCompleted {len(tracks) - len(failed_jobs)}/{len(tracks)}"
+                            f" songs in {time.time() - start_time:.0f}s\n"
+                        )
+                        self.view.textbox.insert(tkinter.INSERT, message)
         except Exception as error:
             raise error
 
@@ -437,7 +486,7 @@ class Controller:
         except Exception:
             pass
 
-    def open_song_folder(self):
+    def open_song_folder(self) -> None:
         path = askdirectory(title="Selectionner un dossier")
         if self.view.convert_entry:
             self.view.convert_entry.set(str(path))
@@ -473,18 +522,49 @@ class Controller:
         else:
             showwarning("Warning", "Choisir un dossier")
 
-    async def _write_metadata_in_xls_file(self, song_path: str) -> None:
+    async def _write_metadata_in_xls_file(self, song_path: str, album: str) -> None:
         if song_path and song_path.endswith(".mp3"):
-            data: MetaData = self.excel_handler.get_file_metadata(song_path)
-            data._num_track = self.num_track
+            data_meta = self.get_all_data(song_path, self.num_track, album)
+            metas, contribs = self.get_data(data_meta)
             self.view.son_path_entry.delete(0, tkinter.END)
-            self.excel_handler.write_in_xlsx_file(data=data)
+            self.excel_handler.write_in_xlsx_file(
+                data=(metas, contribs),
+                meta_start=self.meta_start,
+                contrib_start=self.contrib_start,
+            )
+            self.len_meta = len(metas)
+            self.len_contrib = len(contribs)
+
+    def get_data(self, datas) -> Tuple[list, list]:
+        """get data"""
+        metas:list = []
+        contribs:list = []
+        for data in datas:
+            meta, contrib = self.excel_handler.get_metadata(
+                metadata=XlsMeta(song_metada=data)
+            )
+            metas.append(meta)
+            contribs.append(contrib)
+        return metas, contribs
+
+    def get_all_data(self, song_path, num, album):
+        all_songs = song_path.split(";")
+        meta_data = []
+        for _song_path in all_songs:
+            data = self.excel_handler.get_file_metadata(_song_path)
+            data.num_track = num
+            data.album = album
+            data.contributor.track = str(1) + "."
+            data.contributor.set_track(num)
+            num += 1
+            meta_data.append(data)
+        return meta_data
 
     async def write_many_metadata_in_xls_file(self, song_path: str) -> None:
-        all_songs: list[str] = song_path.split(";")
-        for song in all_songs:
-            await self._write_metadata_in_xls_file(song)
-            self.num_track += 1
-        self.num_track = 1
+        album: str = self.open_input_dialog_for_volume_number()
+        await self._write_metadata_in_xls_file(song_path, album)
         self.excel_handler.save_file()
+        self.num_track = 1
+        self.meta_start += self.len_meta
+        self.contrib_start += self.len_contrib
         showinfo("Info", "Operation terminée")

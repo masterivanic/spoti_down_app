@@ -1,5 +1,4 @@
 import asyncio
-import os
 import tkinter as tk
 import tkinter.messagebox
 from datetime import datetime
@@ -27,15 +26,16 @@ def get_api_configuration():
     """spotify api keys"""
 
     conf = APIConfig
-    conf.SPOTIFY_CLIENT_ID = settings.SPOTIFY_CLIENT_ID
-    conf.USER_ID = settings.USER_ID
-    conf.SPOTIPY_REDIRECT_URI = settings.SPOTIPY_REDIRECT_URI
-    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.SPOTIFY_CLIENT_SECRET_KEY
-    conf.scopes = settings.scopes
+    conf.SPOTIFY_CLIENT_ID = settings.STEEVE_SPOTIFY_CLIENT_ID
+    conf.USER_ID = settings.STEEVE_USER_ID
+    conf.SPOTIPY_REDIRECT_URI = settings.STEEVE_SPOTIPY_REDIRECT_URI
+    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.STEEVE_SPOTIFY_CLIENT_SECRET_KEY
+    conf.scopes = settings.SCOPES
     return conf
 
 
 def get_date():
+    """format date in french format"""
     month = datetime.today().month
     day = datetime.today().day
     year = datetime.today().year
@@ -81,12 +81,13 @@ class App(customtkinter.CTk):
     )
 
     conf = get_api_configuration()
-    list_file:list = []
+    list_file: list = []
+    is_song_loading: bool = False
 
     def __init__(self, user_login):
         super().__init__()
 
-        self.title("Ekila Downloader App")
+        self.title("Ekila Downloader")
         self.user_login = user_login
         self.geometry(f"{1129}x{675}")
         self.resizable(0, 0)
@@ -104,6 +105,7 @@ class App(customtkinter.CTk):
         self.footer()
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
+        """setup window mode contrast"""
         if new_appearance_mode == "Mode clair":
             new_appearance_mode = "Light"
         elif new_appearance_mode == "Mode sombre":
@@ -147,7 +149,6 @@ class App(customtkinter.CTk):
                 self.son_path_entry.delete(0, tkinter.END)
             self.son_path_entry.insert(0, ";".join(song_path))
 
-
     def sidebar(self):
         """Setup side bar of the application"""
 
@@ -189,7 +190,9 @@ class App(customtkinter.CTk):
 
         menu_file.add_cascade(label="Ouvrir un fichier csv", command=self.get_path_file)
         # menu_file.add_cascade(label="Ouvrir un fichier audio", command=self.get_song_path)
-        menu_file.add_cascade(label="Ouvrir vos fichiers audios", command=self.get_many_song_path)
+        menu_file.add_cascade(
+            label="Ouvrir vos fichiers audios", command=self.get_many_song_path
+        )
         menu_file.add_cascade(
             label="Ouvrir un dossier contenant les sons",
             command=self.controller.open_song_folder,
@@ -226,7 +229,9 @@ class App(customtkinter.CTk):
     def header(self):
         """define the header of the application"""
 
-        self.user_label = customtkinter.CTkLabel(master=self, text=f"{self.user_login} est connecté")
+        self.user_label = customtkinter.CTkLabel(
+            master=self, text=f"{self.user_login} est connecté"
+        )
         self.user_label.grid(row=0, column=0, sticky="nw", padx=2)
         self.date_label = customtkinter.CTkLabel(master=self, text=self.current_date)
         self.date_label.grid(row=0, column=1, padx=90, sticky="e")
@@ -382,14 +387,14 @@ class App(customtkinter.CTk):
         )
         self.download_sons_button.grid(row=3, column=1, pady=5, sticky="nw")
 
-        self.progressbar = customtkinter.CTkProgressBar(
+        self.download_progressbar = customtkinter.CTkProgressBar(
             self.download_frame,
             height=30,
             width=350,
             progress_color=("orange", "#FFA500"),
         )
-        self.progressbar.grid(row=3, column=1, padx=150, pady=5, sticky="nw")
-        self.progressbar.set(0)
+        self.download_progressbar.grid(row=3, column=1, padx=150, pady=5, sticky="nw")
+        self.download_progressbar.set(0)
 
     def conversion_son_panel(self):
         """dashboard interface for convert song in wav"""
@@ -429,7 +434,11 @@ class App(customtkinter.CTk):
             border_width=2,
             text_color=("white", "#ffffff"),
             text="Metadata",
-            command=lambda: asyncio.run(self.controller.write_many_metadata_in_xls_file(self.convert_entry.get())),
+            command=lambda: asyncio.run(
+                self.controller.write_many_metadata_in_xls_file(
+                    self.convert_entry.get()
+                )
+            ),
         )
 
         self.convert_sons_button = customtkinter.CTkButton(

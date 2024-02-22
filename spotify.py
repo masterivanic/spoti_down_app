@@ -1,6 +1,7 @@
 import time
 from enum import Enum
 from typing import Any
+from typing import Dict
 from typing import List
 
 import spotipy
@@ -8,10 +9,19 @@ from spotipy.cache_handler import MemoryCacheHandler
 from spotipy.oauth2 import SpotifyOAuth
 
 from cache.cache_handler import CacheFileHandler
-from settings import settings
 from tracks import Track
 from tracks import TrackDto
 from type import Type
+
+
+class APIConfig(Enum):
+    """Api configuration"""
+
+    SPOTIPY_REDIRECT_URI: str
+    SPOTIFY_CLIENT_ID: str
+    SPOTIFY_CLIENT_SECRET_KEY: str
+    USER_ID: str
+    scopes: str
 
 
 class SpotifyUtils:
@@ -22,12 +32,11 @@ class SpotifyUtils:
             track_data = track
             track_data["album"] = album
             tracks.append(Track(track_data))
-
         return tracks
 
     @staticmethod
     def __pack_playlist(playlist, is_playlist_panel: bool = False) -> list:
-        tracks:List[Any] = []
+        tracks: List[Any] = []
         tracks_temp = [track["track"] for track in playlist["tracks"] if track]
         for track_data in tracks_temp:
             if track_data:
@@ -40,16 +49,6 @@ class SpotifyUtils:
                         {playlist['owner']['display_name']}"
                     tracks.append(Track(track_data))
         return tracks
-
-
-class APIConfig(Enum):
-    """Api configuration"""
-
-    SPOTIPY_REDIRECT_URI: str
-    SPOTIFY_CLIENT_ID: str
-    SPOTIFY_CLIENT_SECRET_KEY: str
-    USER_ID: str
-    scopes: str
 
 
 class SpotifyCustomer:
@@ -69,16 +68,18 @@ class SpotifyCustomer:
             scope=config.scopes,
             cache_handler=None,
         )
-        self.sp_utils:SpotifyUtils = SpotifyUtils()
-        self.rest_cache:CacheFileHandler = CacheFileHandler(cache_path=None, username=None)
+        self.sp_utils: SpotifyUtils = SpotifyUtils()
+        self.rest_cache: CacheFileHandler = CacheFileHandler(
+            cache_path=None, username=None
+        )
 
-        token_info:dict = self.auth_manager.get_access_token()
-        self.user_id:str = config.USER_ID
+        token_info: Dict = self.auth_manager.get_access_token()
+        self.user_id: str = config.USER_ID
 
         if isinstance(token_info, dict):
             self.auth_manager.cache_handler = MemoryCacheHandler(token_info=token_info)
             self.auth_manager.cache_handler.save_token_to_cache(token_info=token_info)
-            self.client = spotipy.Spotify(auth_manager=self.auth_manager, language=None)
+            self.client = spotipy.Spotify(auth_manager=self.auth_manager)
 
     def is_token_expired(self) -> bool:
         now = int(time.time())
@@ -118,16 +119,11 @@ class SpotifyCustomer:
             return []
 
     def get_user_plalists(self) -> list:
-        cache_content = self.rest_cache.get_cached_content()
-        try:
-            if not self.is_token_expired():
-                if cache_content is not None:
-                    return cache_content
-                else:
-                    user_playlist = self.get_playlist_from_api()
-                    return user_playlist
-        except Exception:
-            return []
+        if not self.is_token_expired():
+            user_playlist = self.get_playlist_from_api()
+            return user_playlist
+        return []
+
 
     def get_specific_albums_tracks(self, album_id) -> Any:
         if not self.is_token_expired():
@@ -224,6 +220,12 @@ class SpotifyCustomer:
         except Exception:
             return []
 
+    def is_track_or_playlist(self, query) -> str:
+        if "/track/" in query:
+            return "TRACK"
+        elif "/playlist/" in query:
+            return "PLAYLIST"
+
     def _get_playlist_tracks(
         self, playlist_id, is_playlist_panel: bool = False
     ) -> list:
@@ -263,7 +265,7 @@ class SpotifyCustomer:
 
     def is_song_exist(self, playlist_title: str, song_uri: str) -> bool:
         track, exist = self.is_playlist_exist(playlist_title)
-        is_uri:bool = False
+        is_uri: bool = False
         if track["name"] == playlist_title:
             items = self.client.playlist(
                 playlist_id=track["id"], additional_types=("track",)
@@ -281,7 +283,7 @@ class SpotifyCustomer:
                 self.client.playlist_add_items(track["id"], tracks)
 
     async def send_one_song_to_playlist(self, song_uri: str, playlist_title):
-        tab_song:List[str] = []
+        tab_song: List[str] = []
         tab_song.append(song_uri)
         try:
             if playlist_title is not None:

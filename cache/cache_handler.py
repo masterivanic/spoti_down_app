@@ -42,18 +42,18 @@ class CacheFileHandler(CacheHandler):
         if cache_path:
             self.cache_path = cache_path
         else:
-            cache_path = ".cache_response"
+            cache_path = ".cache"
             if username is None: username='anonymous'
             if username: cache_path += "-" + str(username)
             self.cache_path = cache_path
 
         home = Path.home()
         if platform == "win32":
-            self.cache_path = home / 'AppData/Roaming/EkilaDownloader/.cache_response'
+            self.cache_path = home / 'AppData/Roaming/EkilaDownloader/.cache'
         elif platform == "linux":
-            self.cache_path = home / '.local/share/EkilaDownloader/.cache_response'
+            self.cache_path = home / '.local/share/EkilaDownloader/.cache'
         elif platform == "darwin":
-            self.cache_path = home / '.local/share/EkilaDownloader/.cache_response'
+            self.cache_path = home / '.local/share/EkilaDownloader/.cache'
         self.cache_path = self.cache_path.as_uri().split('///')[1]
 
 
