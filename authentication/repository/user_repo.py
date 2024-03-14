@@ -106,6 +106,7 @@ class UserRepository:
 
 
 if __name__ == "__main__":
+    db = DatabaseConnection().create_table(query=tables)
     from datetime import datetime
 
     def get_time_today():

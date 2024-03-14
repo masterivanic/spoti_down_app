@@ -18,6 +18,7 @@ class AuthForm(customtkinter.CTk):
         size=(200, 200)
     )
 
+
     controller = UserController()
     is_destroy = False
     user_login = None

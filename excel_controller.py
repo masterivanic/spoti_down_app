@@ -9,9 +9,6 @@ from metadata import XlsMeta
 
 
 class ExcelUtils(ABC):
-    """define here https://www.youtube.com/watch?v=mJ1N7-HyH1A
-    https://www.youtube.com/watch?v=1atJmWitF74
-    """
 
     @abstractmethod
     def get_file_metadata(self, dir_path: str) -> MetaData:

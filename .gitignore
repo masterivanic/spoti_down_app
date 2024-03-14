@@ -1,4 +1,4 @@
-__pycache__
+__pycache__/
 output
 .dockerignore
 Dockerfile
@@ -11,13 +11,12 @@ EkilaDownloader
 setup.py
 setup
 Test
-requirements.txt
 settings
-.vscode/*
+.vscode
 data.db
 output
 output-version2
 static/*
 data.json
-.vscode/*
+.vscode/
 .pytest_cache/*
