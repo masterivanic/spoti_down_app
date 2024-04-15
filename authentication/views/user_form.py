@@ -26,7 +26,7 @@ class AuthForm(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Ekila Downloader App")
+        self.title("Ekila Downloader")
         self.geometry(f"{700}x{450}")
         self.resizable(0, 0)
         self.login_form()
@@ -44,6 +44,10 @@ class AuthForm(customtkinter.CTk):
     def setup_header_logo(self):
         self.label = customtkinter.CTkLabel(self,  text="", height=200, image=self.logo, width=200)
         self.label.grid(row=0, column=1, sticky=tk.W+tk.E, columnspan=2)
+
+    def clear_enty(self, *args):
+        for entry in args:
+            entry.delete(0,'end')
 
     def validate(self, value):
         """ Validate the email entry """
@@ -245,7 +249,10 @@ class AuthForm(customtkinter.CTk):
                     password = password
                 )
                 is_register = self.controller.register_user(new_user)
-                if is_register: showinfo("Success", "enregistrer avec succes")
+                if is_register:
+                    entries = [self.username_entry, self.email_entry, self.password_entry]
+                    self.clear_enty(*entries)
+                    showinfo("Success", "enregistrer avec succes")
                 else: showwarning("Warning", "Utilisateur existe deja")
 
             elif not is_valid:

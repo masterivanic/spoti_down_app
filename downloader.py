@@ -311,7 +311,6 @@ class Downloader:
         except OSError:
             pass
         print(f"Downloaded -> {str(track)}")
-        # self.logger.info(f'Downloaded -> {str(track)}')
         return status
 
 

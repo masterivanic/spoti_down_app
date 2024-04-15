@@ -12,11 +12,10 @@ setup.py
 setup
 Test
 settings
-.vscode
+.vscode/
 data.db
 output
 output-version2
 static/*
 data.json
-.vscode/
 .pytest_cache/*

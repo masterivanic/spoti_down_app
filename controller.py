@@ -48,7 +48,7 @@ class Controller:
     contrib_start: int = 2
     len_meta: int = 0
     len_contrib: int = 0
-    is_song_loading: bool
+    is_song_loading: bool = False
     logger = logging.getLogger(__name__)
 
     def __init__(self, view, sp_client: SpotifyCustomer):
