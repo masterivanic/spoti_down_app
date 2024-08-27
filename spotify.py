@@ -21,7 +21,7 @@ class APIConfig(Enum):
     SPOTIFY_CLIENT_ID: str
     SPOTIFY_CLIENT_SECRET_KEY: str
     USER_ID: str
-    scopes: str
+    SCOPES: str
 
 
 class SpotifyUtils:
@@ -65,8 +65,9 @@ class SpotifyCustomer:
             client_id=config.SPOTIFY_CLIENT_ID,
             client_secret=config.SPOTIFY_CLIENT_SECRET_KEY,
             redirect_uri=config.SPOTIPY_REDIRECT_URI,
-            scope=config.scopes,
+            scope=config.SCOPES,
             cache_handler=None,
+            show_dialog=True
         )
         self.sp_utils: SpotifyUtils = SpotifyUtils()
         self.rest_cache: CacheFileHandler = CacheFileHandler(
@@ -300,4 +301,16 @@ class SpotifyCustomer:
 
 
 if __name__ == "__main__":
-    pass
+    from settings import settings
+    conf = APIConfig
+    conf.SPOTIFY_CLIENT_ID = settings.SPOTIFY_CLIENT_ID
+    conf.USER_ID = settings.USER_ID
+    conf.SPOTIPY_REDIRECT_URI = settings.SPOTIPY_REDIRECT_URI
+    conf.SPOTIFY_CLIENT_SECRET_KEY = settings.SPOTIFY_CLIENT_SECRET_KEY
+    conf.SCOPES = settings.SCOPES
+
+    value = SpotifyCustomer(config=conf)._get_playlist_tracks(
+        playlist_id="1LcnFI2YSt2iO84epLFJIR"
+    )
+    value = [track.url for track in value]
+    print(value)

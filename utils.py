@@ -71,11 +71,6 @@ def make_copy_file(files: list):
         copy_csv_to_another(source_file=files[i], dest_file=dest_file)
     return dest_file
 
-#to do Buid a function wrapper
-# def iter_an_action(*args, func:function) -> None:
-#     for value in args:
-#         func(value)
-
 
 class PathHolder:
 

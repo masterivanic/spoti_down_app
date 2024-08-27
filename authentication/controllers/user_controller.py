@@ -1,9 +1,8 @@
-__all__ = [""]
-
+from ..models.User import get_time_today
+from ..models.User import User
+from ..repository.user_repo import DatabaseConnection
+from ..repository.user_repo import UserRepository
 from crypto import SimpleEncryption
-
-from ..models.User import User, get_time_today
-from ..repository.user_repo import DatabaseConnection, UserRepository
 
 
 class UserController:
@@ -16,7 +15,7 @@ class UserController:
     def register_user(self, user: User):
         """register a user in db"""
 
-        is_register = None
+        is_register = False
         username = user.get_username
         email = user.get_email
         user_found = self.user_repo.get_user_by_email(email=email)

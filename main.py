@@ -1,5 +1,3 @@
-from tkinter.messagebox import showerror
-
 from authentication.views.user_form import AuthForm
 from custom_tk import App
 
@@ -12,7 +10,8 @@ def launch_app():
             app = App(name)
             app.mainloop()
         except Exception as err:
-            showerror('Erreur', str(err))
+            #showerror('Erreur', str(err))
+            pass
 
 # -------launch application
 launch_app()
